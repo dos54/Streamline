@@ -1,0 +1,1 @@
+"It is impossible for a man to be saved in ignorance" - Doctrine and Covenants 131:6
