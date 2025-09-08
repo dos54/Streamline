@@ -6,3 +6,6 @@
 
 ## Evan
 "Do or do not. There is no try" -Yoda
+## Cassie 
+" I know I was born and I know that I'll die. The in between is mine. I am mine." -Eddi Veddar
+
