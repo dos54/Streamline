@@ -1,3 +1,9 @@
+
+<script setup lang="ts">
+
+</script>
+
+origin/main
 <template>
   <CanvasView />
 </template>
