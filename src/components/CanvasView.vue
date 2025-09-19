@@ -14,8 +14,19 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { VueFlow } from '@vue-flow/core'
+import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
+
+const {onNodeDragStop} = useVueFlow()
+
+onNodeDragStop(({event, nodes, node}) => {
+  /**
+   * The planning is:
+   * 1. We check whether the dragged node was dragged from the list on the side by checking its initial and/or final positions.
+   * 2. We then check its final position and create the node in the database.
+   */
+  console.log('Done dragging', {event, nodes, node})
+})
 
 const nodes = ref([
   {
