@@ -1,24 +1,41 @@
 <template>
   <div class="consumer-node">
-    <div class="header">Consumer</div>
+    <div class="header">
+      Consumer
+      <button @click="toggleDirection" class="direction-toggle">
+        {{ currentDirection === 'ltr' ? '→' : '←' }}
+      </button>
+    </div>
+
     <input
-      v-model="editableLabel"
       class="label-input"
-      @input="updateLabel"
-      :placeholder="'Enter name...'"
+      v-model="editableLabel"
+      @blur="updateLabel"
+      placeholder="Enter name"
     />
-    <Handle type="target" :position="Position.Left" :id="'in'" />
+
+    <Handle type="target" :position="inputPosition" />
+    <Handle type="source" :position="outputPosition" />
   </div>
 </template>
 
+
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 
-const props = defineProps<{ label: string }>()
-const emit = defineEmits<{ (e: 'update:label', value: string): void }>()
+const props = defineProps<{
+  label: string
+  direction?: 'ltr' | 'rtl'
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:label', value: string): void
+  (e: 'update:direction', value: 'ltr' | 'rtl'): void
+}>()
 
 const editableLabel = ref(props.label)
+const currentDirection = ref(props.direction || 'ltr')
 
 watch(() => props.label, (newVal) => {
   editableLabel.value = newVal
@@ -27,7 +44,20 @@ watch(() => props.label, (newVal) => {
 function updateLabel() {
   emit('update:label', editableLabel.value)
 }
+
+function toggleDirection() {
+  currentDirection.value = currentDirection.value === 'ltr' ? 'rtl' : 'ltr'
+  emit('update:direction', currentDirection.value)
+}
+
+const inputPosition = computed(() =>
+  currentDirection.value === 'rtl' ? Position.Right : Position.Left
+)
+const outputPosition = computed(() =>
+  currentDirection.value === 'rtl' ? Position.Left : Position.Right
+)
 </script>
+
 
 <style scoped>
 .consumer-node {
@@ -44,7 +74,10 @@ function updateLabel() {
 .header {
   font-weight: bold;
   margin-bottom: 6px;
-  color: #e65100;
+  color: #1565C0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .label-input {
@@ -56,5 +89,17 @@ function updateLabel() {
   font-family: inherit;
   color: #e65100;
   outline: none;
+}
+
+.direction-toggle {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #1565C0;
+  padding: 0;
+}
+.direction-toggle:hover {
+  color: #0d47a1;
 }
 </style>
