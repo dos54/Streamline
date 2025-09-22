@@ -2,9 +2,10 @@
   <div class="canvas-wrapper">
     <VueFlow
       v-model:nodes="nodes"
-      :fit-view="true"
+      :node-types="nodeTypes"
       :zoom-on-scroll="true"
       :pan-on-drag="true"
+      @pane-ready="handlePaneReady"
       class="vue-flow-canvas"
     >
       <Background variant="dots" :gap="20" :size="1" />
@@ -14,15 +15,37 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { VueFlow } from '@vue-flow/core'
+import { VueFlow, useVueFlow } from '@vue-flow/core'
+import type { NodeTypesObject } from '@vue-flow/core'
+import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
+
+import ProducerNode from '../nodes/ProducerNode.vue'
+import ConsumerNode from '../nodes/ConsumerNode.vue'
+
+const { fitView } = useVueFlow()
+
+function handlePaneReady() {
+  fitView({ padding: 0.2 }) // This makes it so it only runs once on load
+}
+
+const nodeTypes: NodeTypesObject = {
+  producer: ProducerNode as Component,
+  consumer: ConsumerNode as Component,
+}
 
 const nodes = ref([
   {
-    id: '1',
-    type: 'default',
-    position: { x: 250, y: 150 },
-    data: { label: 'This is our Canvas' },
+    id: 'producer-1',
+    type: 'producer',
+    position: { x: 100, y: 200 },
+    data: { label: 'Iron Mine' },
+  },
+  {
+    id: 'consumer-1',
+    type: 'consumer',
+    position: { x: 400, y: 200 },
+    data: { label: 'Smelter' },
   },
 ])
 </script>
