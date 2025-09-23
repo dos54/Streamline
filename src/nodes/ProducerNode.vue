@@ -14,42 +14,61 @@
       placeholder="Enter name"
     />
 
+    <div class="inputs-section">
+      <h3>Inputs</h3>
+      <div v-if="data.inputs?.length">
+  <ul>
+  <li v-for="(input, index) in data.inputs" :key="index">
+    {{ input.resourceId }}: {{ input.perCycle }} {{ input.unitId }}
+  </li>
+</ul>
+
+
+      </div>
+      <div v-else>
+        <p>No inputs defined</p>
+      </div>
+    </div>
+
     <Handle type="target" :position="inputPosition" />
     <Handle type="source" :position="outputPosition" />
   </div>
 </template>
 
-
-
-
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
+import NodeResourceEditor from '@/components/NodeResourceEditor.vue'
 
 const props = defineProps<{
-  label: string
-  direction?: 'ltr' | 'rtl'
+  data: {
+    label: string
+    direction?: 'ltr' | 'rtl'
+    inputs?: {
+      resourceId: string
+      unitId: string
+      perCycle: number
+    }[]
+    resources?: {
+      id: string
+      name: string
+      defaultUnitId: string
+    }[]
+  }
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:label', value: string): void
-  (e: 'update:direction', value: 'ltr' | 'rtl'): void
-}>()
+const data = props.data
 
-const editableLabel = ref(props.label)
-const currentDirection = ref(props.direction || 'ltr')
-
-watch(() => props.label, (newVal) => {
-  editableLabel.value = newVal
-})
+const editableLabel = ref(data.label)
+const currentDirection = ref(data.direction || 'ltr')
 
 function updateLabel() {
-  emit('update:label', editableLabel.value)
+  data.label = editableLabel.value
 }
 
 function toggleDirection() {
   currentDirection.value = currentDirection.value === 'ltr' ? 'rtl' : 'ltr'
-  emit('update:direction', currentDirection.value)
+  data.direction = currentDirection.value
 }
 
 const inputPosition = computed(() =>
@@ -58,56 +77,84 @@ const inputPosition = computed(() =>
 const outputPosition = computed(() =>
   currentDirection.value === 'rtl' ? Position.Left : Position.Right
 )
+
+function getResourceById(id: string) {
+  return data.resources?.find(r => r.id === id) ?? {
+    id: '',
+    name: 'Unknown',
+    defaultUnitId: ''
+  }
+}
+
+function updateInput(index: number, newPerCycle: number) {
+  if (data.inputs && data.inputs[index]) {
+    data.inputs[index].perCycle = newPerCycle
+  }
+}
 </script>
-
-
-
 
 <style scoped>
 .producer-node {
-  padding: 12px;
+  background-color: #e6f4ea;
+  border: 2px solid #a3d9a5;
   border-radius: 8px;
-  background-color: #e8f5e9;
-  border: 2px solid #4CAF50;
+  padding: 1rem;
+  width: 240px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   font-family: 'Segoe UI', sans-serif;
-  width: 140px;
-  text-align: center;
-  position: relative;
 }
 
+
 .header {
-  font-weight: bold;
-  margin-bottom: 6px;
-  color: #2e7d32;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: #333;
 }
 
 .label-input {
   width: 100%;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-size: 14px;
-  font-family: inherit;
-  color: #2e7d32;
-  outline: none;
+  padding: 6px 8px;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.inputs-section {
+  margin-top: 1rem;
+  background-color: #f9f9f9;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.inputs-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
 }
 
 .direction-toggle {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
   cursor: pointer;
-  color: #2e7d32;
-  margin-top: 6px;
-  padding: 0;
+  font-size: 1rem;
+  transition: background 0.2s ease;
 }
+
 .direction-toggle:hover {
-  color: #1b5e20;
+  background: #ddd;
 }
 
-
+.producer-node:hover {
+  border-color: #999;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
 
 </style>

@@ -3,6 +3,12 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import '@vue-flow/core/dist/style.css'
+
+
+
+
+
 
 const app = createApp(App)
 

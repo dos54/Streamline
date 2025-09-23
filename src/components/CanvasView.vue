@@ -2,6 +2,7 @@
   <div class="canvas-wrapper">
     <VueFlow
       v-model:nodes="nodes"
+      v-model:edges="edges" 
       :node-types="nodeTypes"
       :zoom-on-scroll="true"
       :pan-on-drag="true"
@@ -12,6 +13,7 @@
     </VueFlow>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref } from 'vue'
@@ -26,7 +28,7 @@ import ConsumerNode from '../nodes/ConsumerNode.vue'
 const { fitView } = useVueFlow()
 
 function handlePaneReady() {
-  fitView({ padding: 0.2 }) // This makes it so it only runs once on load
+  fitView({ padding: 0.2 })
 }
 
 const nodeTypes: NodeTypesObject = {
@@ -34,19 +36,53 @@ const nodeTypes: NodeTypesObject = {
   consumer: ConsumerNode as Component,
 }
 
+const edges = ref([
+  {
+    id: 'e1',
+    source: 'producer-1',
+    target: 'consumer-1',
+    label: 'Electricity',
+    animated: true,
+    style: { stroke: '#999' },
+    labelStyle: { fill: '#333', fontSize: 12 }
+  }
+])
+
+
+
 const nodes = ref([
   {
     id: 'producer-1',
     type: 'producer',
     position: { x: 100, y: 200 },
-    data: { label: 'Iron Mine' },
+    data: {
+      label: 'Iron Mine',
+      direction: 'ltr',
+      inputs: [
+        { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
+        { resourceId: 'steel', unitId: 'kg', perCycle: 2 }
+      ],
+      resources: [
+        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
+        { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
+      ]
+    }
   },
   {
     id: 'consumer-1',
     type: 'consumer',
     position: { x: 400, y: 200 },
-    data: { label: 'Smelter' },
-  },
+    data: {
+      label: 'Smelter',
+      direction: 'ltr',
+      inputs: [
+        { resourceId: 'power', unitId: 'kWh', perCycle: 1 }
+      ],
+      resources: [
+        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' }
+      ]
+    }
+  }
 ])
 </script>
 

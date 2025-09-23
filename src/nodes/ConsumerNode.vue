@@ -2,9 +2,6 @@
   <div class="consumer-node">
     <div class="header">
       Consumer
-      <button @click="toggleDirection" class="direction-toggle">
-        {{ currentDirection === 'ltr' ? '→' : '←' }}
-      </button>
     </div>
 
     <input
@@ -14,40 +11,43 @@
       placeholder="Enter name"
     />
 
+    <div class="inputs-section">
+      <h3>Inputs</h3>
+      <ul>
+        <li v-for="(input, index) in data.inputs" :key="index">
+          {{ input.resourceId }}: {{ input.perCycle }} {{ input.unitId }}
+        </li>
+      </ul>
+    </div>
+
     <Handle type="target" :position="inputPosition" />
     <Handle type="source" :position="outputPosition" />
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 
 const props = defineProps<{
-  label: string
-  direction?: 'ltr' | 'rtl'
+  data: {
+    label: string
+    direction?: 'ltr' | 'rtl'
+    inputs: {
+      resourceId: string
+      unitId: string
+      perCycle: number
+    }[]
+  }
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:label', value: string): void
-  (e: 'update:direction', value: 'ltr' | 'rtl'): void
-}>()
+const data = props.data
 
-const editableLabel = ref(props.label)
-const currentDirection = ref(props.direction || 'ltr')
-
-watch(() => props.label, (newVal) => {
-  editableLabel.value = newVal
-})
+const editableLabel = ref(data.label)
+const currentDirection = ref(data.direction || 'ltr')
 
 function updateLabel() {
-  emit('update:label', editableLabel.value)
-}
-
-function toggleDirection() {
-  currentDirection.value = currentDirection.value === 'ltr' ? 'rtl' : 'ltr'
-  emit('update:direction', currentDirection.value)
+  data.label = editableLabel.value
 }
 
 const inputPosition = computed(() =>
@@ -58,48 +58,44 @@ const outputPosition = computed(() =>
 )
 </script>
 
-
 <style scoped>
 .consumer-node {
-  padding: 12px;
+  background-color: #fff3e6; /* soft orange */
+  border: 2px solid #f5b97d;
   border-radius: 8px;
-  background-color: #fff3e0;
-  border: 2px solid #ff9800;
+  padding: 1rem;
+  width: 240px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   font-family: 'Segoe UI', sans-serif;
-  width: 140px;
-  text-align: center;
-  position: relative;
 }
 
 .header {
-  font-weight: bold;
-  margin-bottom: 6px;
-  color: #1565C0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: #333;
 }
 
 .label-input {
   width: 100%;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-size: 14px;
-  font-family: inherit;
-  color: #e65100;
-  outline: none;
+  padding: 6px 8px;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 
-.direction-toggle {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #1565C0;
-  padding: 0;
+.inputs-section {
+  margin-top: 1rem;
+  background-color: #fef7f0;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #f5d9b0;
 }
-.direction-toggle:hover {
-  color: #0d47a1;
+
+.inputs-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
 }
 </style>
