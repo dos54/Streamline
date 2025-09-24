@@ -2,7 +2,7 @@
   <div class="canvas-wrapper">
     <VueFlow
       v-model:nodes="nodes"
-      v-model:edges="edges" 
+      v-model:edges="edges"
       :node-types="nodeTypes"
       :zoom-on-scroll="true"
       :pan-on-drag="true"
@@ -14,11 +14,10 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject } from '@vue-flow/core'
+import type { NodeTypesObject, Node, Edge } from '@vue-flow/core'
 import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
 
@@ -36,7 +35,13 @@ const nodeTypes: NodeTypesObject = {
   consumer: ConsumerNode as Component,
 }
 
-const edges = ref([
+type OutputResource = {
+  resourceId: string
+  unitId: string
+  perCycle: number
+}
+
+const edges = ref<Edge[]>([
   {
     id: 'e1',
     source: 'producer-1',
@@ -48,9 +53,7 @@ const edges = ref([
   }
 ])
 
-
-
-const nodes = ref([
+const nodes = ref<Node[]>([
   {
     id: 'producer-1',
     type: 'producer',
@@ -58,10 +61,17 @@ const nodes = ref([
     data: {
       label: 'Iron Mine',
       direction: 'ltr',
+      cycleTime: 5,
       inputs: [
         { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
         { resourceId: 'steel', unitId: 'kg', perCycle: 2 }
       ],
+outputs: [
+  { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
+  { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
+]
+
+,
       resources: [
         { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
         { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
@@ -84,7 +94,89 @@ const nodes = ref([
     }
   }
 ])
+
+function validateResourceFlow(nodes: Node[], edges: Edge[]) {
+  const nodeMap = new Map(nodes.map(node => [node.id, node]))
+  const results = []
+
+  for (const edge of edges) {
+    const source = nodeMap.get(edge.source)
+    const target = nodeMap.get(edge.target)
+
+    if (!source || !target) continue
+
+    const outputs = (source.data.outputs ?? []) as OutputResource[]
+    const inputs = (target.data.inputs ?? []) as OutputResource[]
+
+    for (const input of inputs) {
+      const match = outputs.find(
+        output =>
+          output.resourceId === input.resourceId &&
+          output.unitId === input.unitId &&
+          output.perCycle >= input.perCycle
+      )
+
+      results.push({
+        edgeId: edge.id,
+        target: edge.target, // link result to consumer node
+        resourceId: input.resourceId,
+        valid: !!match,
+        message: match
+          ? `✅ ${input.resourceId} is sufficiently supplied`
+          : `⚠️ ${input.resourceId} is missing or under-supplied`
+      })
+    }
+  }
+
+  return results
+}
+
+const validationResults = computed(() =>
+  validateResourceFlow(nodes.value, edges.value)
+)
+
+
+
+watchEffect(() => {
+  const results = validationResults.value
+
+  for (const node of nodes.value) {
+    if (node.type === 'consumer') {
+      const nodeResults = results.filter(r => r.target === node.id)
+      const messages = nodeResults.map(r => r.message)
+      const allValid = nodeResults.every(r => r.valid)
+      const statusColor = allValid ? '#4caf50' : '#f44336'
+
+      node.data.statusMessages = messages
+      node.data.statusColor = statusColor
+    }
+  }
+
+  for (const edge of edges.value) {
+    const edgeResults = results.filter(r => r.edgeId === edge.id)
+    const isValid = edgeResults.every(r => r.valid)
+
+    edge.data = edge.data || {}
+    edge.data.valid = isValid
+
+    edge.style = {
+      stroke: isValid ? '#4caf50' : '#f44336',
+      strokeWidth: 2
+    }
+
+    edge.labelStyle = {
+      fill: isValid ? '#4caf50' : '#f44336',
+      fontWeight: 'bold',
+      fontSize: 12
+    }
+  }
+})
+
+
+
 </script>
+
+
 
 <style scoped>
 .canvas-wrapper {

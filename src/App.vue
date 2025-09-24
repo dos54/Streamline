@@ -1,13 +1,15 @@
-
-<script setup lang="ts">
-
-</script>
-
-origin/main
 <template>
-  <CanvasView />
+  <router-view />
 </template>
 
 <script setup lang="ts">
-import CanvasView from './components/CanvasView.vue' 
+// No logic here—just a shell for routed views
 </script>
+
+<style>
+/* Optional global styles */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+</style>
