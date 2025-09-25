@@ -1,0 +1,26 @@
+name: PR Preview (Pages)
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: corepack enable && corepack prepare pnpm@10.17.1 --activate
+      - if: github.event.action != 'closed'
+        run: |
+          pnpm i --frozen-lockfile
+          pnpm build
+          cp dist/index.html dist/404.html
+      - uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: dist
