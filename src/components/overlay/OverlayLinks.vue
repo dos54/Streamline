@@ -15,62 +15,6 @@
           />
         </a>
       </li>
-      <li>
-        <a
-          href="https://github.com/dos54/Streamline"
-          target="_blank"
-          rel="noopener"
-          aria-label="GitHub (Opens in new tab)"
-        >
-          <img
-            class="github-link-image"
-            :src="base + 'images/icons/github/github-mark.svg'"
-            alt=""
-          />
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/dos54/Streamline"
-          target="_blank"
-          rel="noopener"
-          aria-label="GitHub (Opens in new tab)"
-        >
-          <img
-            class="github-link-image"
-            :src="base + 'images/icons/github/github-mark.svg'"
-            alt=""
-          />
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/dos54/Streamline"
-          target="_blank"
-          rel="noopener"
-          aria-label="GitHub (Opens in new tab)"
-        >
-          <img
-            class="github-link-image"
-            :src="base + 'images/icons/github/github-mark.svg'"
-            alt=""
-          />
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/dos54/Streamline"
-          target="_blank"
-          rel="noopener"
-          aria-label="GitHub (Opens in new tab)"
-        >
-          <img
-            class="github-link-image"
-            :src="base + 'images/icons/github/github-mark.svg'"
-            alt=""
-          />
-        </a>
-      </li>
     </ul>
   </div>
 </template>
