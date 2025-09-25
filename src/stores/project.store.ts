@@ -11,6 +11,7 @@ export const useProjectStore = defineStore('project', {
   getters: {
     nodes: (s) => s.current?.nodes ?? [],
     edges: (s) => s.current?.edges ?? [],
+    units: (s) => s.current?.units ?? [],
     resources: (s) => s.current?.resources ?? [],
     nodeById: (s) => (id: string) => s.current?.nodes.find((n) => n.id === id),
   },
@@ -18,6 +19,7 @@ export const useProjectStore = defineStore('project', {
   actions: {
     async load(id: string) {
       const p = await db.projects.get(id)
+      console.log('Fetched from Dexie:', p)
       if (!p) throw new Error('Project not found')
       const parsed = ProjectZ.parse(p)
       this.current = parsed
