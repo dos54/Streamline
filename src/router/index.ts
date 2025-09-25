@@ -13,10 +13,6 @@ const routes = [
     path: '/project/:id',
     component: ProjectView,
   },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/',
-  },
 ]
 
 const router = createRouter({
