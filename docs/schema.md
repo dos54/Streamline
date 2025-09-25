@@ -17,7 +17,7 @@ This is meant to answer the question: What schemas will we need for this project
 | `inputs`           | NodeResource\[]                                    | List of input objects connected to this node                                                                                     |
 | `outputs`          | NodeResource\[]                                    | List of output objects produced by this node                                                                                     |
 | `cycleTime`        | number                                             | Time required for the node to complete one cycle                                                                                 |
-| `cycleTimeUnitId?` | string?                                            | The unit for time, defaults to the project default.                                                                                           |
+| `cycleTimeUnitId?` | string?                                            | The unit for time, defaults to the project default.                                                                              |
 | `tags?`            | string\[]                                          | Possible labels to be used with search?                                                                                          |
 | `ui?`              | {width?: number; height?: number; zIndex?: number} | Layout hints                                                                                                                     |
 | `templateId`       | string                                             | If this was generated from a template it might be good to keep it listed, such that future changes to the template are reflected |
@@ -50,8 +50,8 @@ This is meant to answer the question: What schemas will we need for this project
 | `name`          | string   | The human readable name for this resource               |
 | `defaultUnitId` | string   | The ID for its default unit                             |
 | `category`      | string   | Allow for the user to define custom resource categories |
-| `precision`     | number   | User defined guidance for rounding                      |
-| `aliases`       | string[] | Search terms                                            |
+| `precision?`    | number   | User defined guidance for rounding                      |
+| `aliases?`      | string[] | Search terms                                            |
 
 ## NodeResource
 

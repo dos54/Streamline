@@ -1,13 +1,7 @@
-
 <script setup lang="ts">
-
+import { RouterView } from 'vue-router';
 </script>
 
-origin/main
 <template>
-  <CanvasView />
+  <RouterView />
 </template>
-
-<script setup lang="ts">
-import CanvasView from './components/CanvasView.vue' 
-</script>
