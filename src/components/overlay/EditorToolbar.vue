@@ -20,7 +20,7 @@ const base = import.meta.env.BASE_URL
   left: 8px;
   pointer-events: auto;
 
-  background-color: white;
+  background-color: var(--overlay-bg);
   border-radius: var(--overlay-border-radius);
   border: var(--overlay-border-settings);
 }
@@ -38,7 +38,7 @@ const base = import.meta.env.BASE_URL
 }
 
 .settings-button:hover {
-  background-color: rgba(0, 0, 0, .1);
+  background-color: var(--primary-hover);
 }
 
 .settings-icon {

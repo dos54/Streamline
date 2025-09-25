@@ -7,6 +7,7 @@
           target="_blank"
           rel="noopener"
           aria-label="GitHub (Opens in new tab)"
+          class="link"
         >
           <img
             class="github-link-image"
@@ -43,6 +44,17 @@ const base = import.meta.env.BASE_URL
 .links-wrapper * {
   margin: 0;
   padding: 0;
+  overflow: hidden;
+}
+
+.link {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.link:hover {
+  background-color: var(--primary-hover);
 }
 
 .list {
@@ -55,6 +67,7 @@ const base = import.meta.env.BASE_URL
 
 .list > li {
   margin: 0.25rem;
+  height: 200%;
   pointer-events: auto;
 }
 
