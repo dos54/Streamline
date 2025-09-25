@@ -2,15 +2,73 @@
   <div class="links-wrapper">
     <ul class="list">
       <li>
-        <a href="https://github.com/dos54/Streamline"
-        target="_blank"
-        rel="noopener"
-        aria-label="GitHub (Opens in new tab)"
+        <a
+          href="https://github.com/dos54/Streamline"
+          target="_blank"
+          rel="noopener"
+          aria-label="GitHub (Opens in new tab)"
         >
           <img
-          class="github-link-image"
-          :src="base + 'images/icons/github/github-mark.svg'"
-          alt="">
+            class="github-link-image"
+            :src="base + 'images/icons/github/github-mark.svg'"
+            alt=""
+          />
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/dos54/Streamline"
+          target="_blank"
+          rel="noopener"
+          aria-label="GitHub (Opens in new tab)"
+        >
+          <img
+            class="github-link-image"
+            :src="base + 'images/icons/github/github-mark.svg'"
+            alt=""
+          />
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/dos54/Streamline"
+          target="_blank"
+          rel="noopener"
+          aria-label="GitHub (Opens in new tab)"
+        >
+          <img
+            class="github-link-image"
+            :src="base + 'images/icons/github/github-mark.svg'"
+            alt=""
+          />
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/dos54/Streamline"
+          target="_blank"
+          rel="noopener"
+          aria-label="GitHub (Opens in new tab)"
+        >
+          <img
+            class="github-link-image"
+            :src="base + 'images/icons/github/github-mark.svg'"
+            alt=""
+          />
+        </a>
+      </li>
+      <li>
+        <a
+          href="https://github.com/dos54/Streamline"
+          target="_blank"
+          rel="noopener"
+          aria-label="GitHub (Opens in new tab)"
+        >
+          <img
+            class="github-link-image"
+            :src="base + 'images/icons/github/github-mark.svg'"
+            alt=""
+          />
         </a>
       </li>
     </ul>
@@ -35,7 +93,7 @@ const base = import.meta.env.BASE_URL
   /* Styling */
   background-color: var(--overlay-bg);
   border-radius: var(--overlay-border-radius);
-  border: var(--overlay-border-settings)
+  border: var(--overlay-border-settings);
 }
 
 .links-wrapper * {
@@ -52,7 +110,7 @@ const base = import.meta.env.BASE_URL
 }
 
 .list > li {
-  margin: .25rem;
+  margin: 0.25rem;
   pointer-events: auto;
 }
 
