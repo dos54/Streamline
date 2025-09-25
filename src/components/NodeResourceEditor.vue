@@ -19,16 +19,16 @@ import { ref, watch } from 'vue'
 import type { NodeResource } from '@/types/nodeResource'
 import type { Resource } from '@/types/resource'
 
-defineProps<{
+const props = defineProps<{
   nodeResource: NodeResource
   resource: Resource
 }>()
 
 const emit = defineEmits(['update:perCycle'])
 
-const localPerCycle = ref(nodeResource.perCycle)
+const localPerCycle = ref(props.nodeResource.perCycle)
 
-watch(() => nodeResource.perCycle, (newVal) => {
+watch(() => props.nodeResource.perCycle, (newVal) => {
   localPerCycle.value = newVal
 })
 
