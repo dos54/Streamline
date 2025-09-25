@@ -1,12 +1,17 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createHead } from '@unhead/vue/client'
+
 import App from './App.vue'
 import router from './router'
-import '@vue-flow/core/dist/style.css'
 import { db } from './db/dexie'
 
-// Optional: expose Dexie to browser console for debugging
-;(window as any).db = db
+import '@vue-flow/core/dist/style.css'
+import '@vue-flow/core/dist/theme-default.css'
+
+import '@/styles/main.css'
+
+const head = createHead()
 
 // Seed Dexie with a demo project, then mount the app
 ;(async () => {
@@ -68,5 +73,6 @@ import { db } from './db/dexie'
   const app = createApp(App)
   app.use(createPinia())
   app.use(router)
+  app.use(head)
   app.mount('#app')
 })()

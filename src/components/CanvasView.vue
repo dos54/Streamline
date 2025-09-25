@@ -7,10 +7,11 @@
       :zoom-on-scroll="true"
       :pan-on-drag="true"
       @pane-ready="handlePaneReady"
-      class="vue-flow-canvas"
+      class="fill"
     >
       <Background variant="dots" :gap="20" :size="1" />
     </VueFlow>
+    <CanvasOverlay />
   </div>
 </template>
 
@@ -23,6 +24,7 @@ import { Background } from '@vue-flow/background'
 
 import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
+import CanvasOverlay from './overlay/CanvasOverlay.vue'
 
 const { fitView } = useVueFlow()
 
@@ -180,12 +182,12 @@ watchEffect(() => {
 
 <style scoped>
 .canvas-wrapper {
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  width: 100svw;
+  height: 100svh;
 }
 
-.vue-flow-canvas {
-  background-color: #f0f0f0;
+.fill {
+  width: 100%;
+  height: 100%;
 }
 </style>
