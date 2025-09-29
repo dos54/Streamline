@@ -147,7 +147,7 @@ function syncUnit(input: typeof data.inputs[number]) {
 
   const resource = project.resources?.find((r) => r.id === input.resourceId)
   if (resource && !input.unitId) {
-    input.unitId = resource.defaultUnitId
+    input.unitId = resource.defaultUnitId as string // There is a type error here. "As string" is a band-aid fix that we need to replace later.
   }
 }
 

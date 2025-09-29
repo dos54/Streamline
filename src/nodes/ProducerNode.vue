@@ -121,7 +121,6 @@
               step="0.1"
               placeholder="perCycle"
             />
-
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
@@ -251,7 +250,7 @@ function syncUnit(output: typeof data.outputs[number]) {
 
   const resource = project.resources?.find((r) => r.id === output.resourceId)
   if (resource && !output.unitId) {
-    output.unitId = resource.defaultUnitId ?? ''
+    output.unitId = resource.defaultUnitId as string ?? '' // Again, this is a bandaid fix.
   }
 }
 
