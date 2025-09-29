@@ -18,20 +18,24 @@ onConnect(addEdges)
 </script>
 
 
-<template>
-  <div class="dnd-flow" @drop="onDrop">
-    <VueFlow :nodes="nodes" @dragover="onDragOver" @dragleave="onDragLeave">
-      <DropzoneBackground
-        :style="{
-          backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
-          transition: 'background-color 0.2s ease',
-        }"
-      >
-        <p v-if="isDragOver">Drop here</p>
-      </DropzoneBackground>
-    </VueFlow>
-
+<div class="app-layout">
+    <CanvasView v-model:nodes="nodes" :is-drag-over="isDragOver" @drop="onDrop"/>
     <Sidebar />
-  </div>
-</template>
+</div >
 
+<style scoped>
+.app-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.app-layout >:first-child {
+  flex: 1;
+}
+
+.app-layout > :last-child {
+  width: 250px;
+  border-left: 1px solid #cc0909;
+  background: #fff;
+}
+</style>
