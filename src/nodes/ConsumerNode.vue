@@ -115,7 +115,7 @@ function addInput() {
   })
 }
 
-// ✅ Validation logic
+//  Validation logic
 function isValidResource(r: { resourceId: string; perCycle: number }) {
   return r.resourceId !== '' && r.perCycle > 0
 }
@@ -124,7 +124,7 @@ const isNodeValid = computed(() =>
   data.inputs.every(isValidResource)
 )
 
-// 🔁 Direction toggle logic
+//  Direction toggle logic
 const currentDirection = ref(data.direction || 'ltr')
 const directionArrow = computed(() =>
   currentDirection.value === 'rtl' ? '←' : '→'

@@ -35,8 +35,21 @@
       <div class="inputs-section" v-if="Array.isArray(data.inputs)">
         <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div v-for="(input, index) in data.inputs" :key="index" class="input-row">
+          <div
+            v-for="(input, index) in data.inputs"
+            :key="index"
+            class="input-row"
+            style="position: relative"
+          >
             <label>Input {{ index + 1 }}</label>
+
+            <Handle
+              type="target"
+              :position="inputPosition"
+              :id="`input-${index}`"
+              class="row-handle"
+            />
+
             <select v-model="input.resourceId">
               <option value="">Select resource</option>
               <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
@@ -63,12 +76,25 @@
       <div class="outputs-section" v-if="Array.isArray(data.outputs)">
         <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list">
-          <div v-for="(output, index) in data.outputs" :key="index" class="output-row">
+          <div
+            v-for="(output, index) in data.outputs"
+            :key="output.id"
+            class="output-row"
+            style="position: relative"
+          >
             <label>
               Output {{ index + 1 }}
               <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
               <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
             </label>
+
+            <Handle
+              type="source"
+              :position="outputPosition"
+              :id="`output-${output.id}`"
+              class="row-handle"
+            />
+              
 
             <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
@@ -77,13 +103,16 @@
               </option>
             </select>
 
-            <select v-model="output.unitId">
+            <select
+              v-model="output.unitId"
+              :class="{ 'auto-filled': wasAutoFilled(output) }"
+              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''"
+            >
               <option value="">Select unit</option>
               <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
                 {{ unit.label }}
               </option>
             </select>
-
 
             <input
               type="number"
@@ -92,9 +121,6 @@
               step="0.1"
               placeholder="perCycle"
             />
-
-
-
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
@@ -103,11 +129,9 @@
         <button @click="addOutput" class="add-button">+ Add Output</button>
       </div>
     </div>
-
-    <Handle type="target" :position="inputPosition" />
-    <Handle type="source" :position="outputPosition" />
   </div>
 </template>
+
 
 
 
@@ -226,9 +250,15 @@ function syncUnit(output: typeof data.outputs[number]) {
 
   const resource = project.resources?.find((r) => r.id === output.resourceId)
   if (resource && !output.unitId) {
-    output.unitId = resource.defaultUnitId as string // Again, this is a bandaid fix.
+    output.unitId = resource.defaultUnitId as string ?? '' // Again, this is a bandaid fix.
   }
 }
+
+function wasAutoFilled(output: typeof data.outputs[number]) {
+  const resource = project.resources?.find((r) => r.id === output.resourceId)
+  return resource?.defaultUnitId === output.unitId
+}
+
 
 // 📦 Resource and unit dropdowns
 const resourceOptions = computed(() =>
@@ -414,5 +444,19 @@ select.auto-filled {
   background-color: #e8f5e9;
   border-color: #81c784;
 }
+
+.row-handle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: -12px; /* or right: -12px for RTL */
+  width: 10px;
+  height: 10px;
+  background-color: #4caf50;
+  border: 2px solid white;
+  border-radius: 50%;
+  z-index: 10;
+}
+
 
 </style>
