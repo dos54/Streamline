@@ -14,9 +14,9 @@ import OverlayLinks from '@/components/overlay/OverlayLinks.vue';
 import EditorToolbar from './EditorToolbar.vue';
 
 const overlayVars = {
-  '--overlay-bg': 'rgba(240, 240, 240, .6)',
-  '--overlay-border-radius': '12px',
-  '--overlay-border-settings': '2px solid black'
+  '--overlay-bg': 'var(--on-bg)',
+  '--overlay-border-radius': 'var(--radius-lg)',
+  '--overlay-border-settings': 'var(--border-full-1)'
 }
 </script>
 

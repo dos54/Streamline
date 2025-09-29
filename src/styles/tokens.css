@@ -1,0 +1,27 @@
+:root {
+  /* Colors */
+  --primary: #9BA9FF;
+  --primary-hover: #D8C2FF;
+  --secondary: #F4CCFF;
+  --muted: #f9e4ff;
+  --accent: #9BA9FF;
+
+  --bg: #e1e3ec;
+  --on-bg: #f9e4ff;
+  --color-text: black;
+
+  --border-color-100: lightgray;
+  --border-color-400: gray;
+  --border-color-800: black;
+
+  /* Styling */
+  --radius-sm: 4px;
+  --radius-med: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .1);
+
+  --border-full-1: 2px solid var(--border-color-800);
+  --border-full-2: 1px solid var(--border-color-400);
+  --border-full-3: 1px solid var(--border-color-100);
+}
