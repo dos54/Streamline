@@ -25,6 +25,9 @@ import { Background } from '@vue-flow/background'
 import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
+import SmartNode from '../nodes/SmartNode.vue'
+
+
 
 const { fitView } = useVueFlow()
 
@@ -35,6 +38,7 @@ function handlePaneReady() {
 const nodeTypes: NodeTypesObject = {
   producer: ProducerNode as Component,
   consumer: ConsumerNode as Component,
+  smart: SmartNode as Component,
 }
 
 type OutputResource = {
@@ -94,7 +98,25 @@ outputs: [
         { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' }
       ]
     }
+  },
+  {
+  id: 'smart-1',
+  type: 'smart',
+  position: { x: 250, y: 400 },
+  data: {
+    label: 'Smart Node',
+    mode: 'transformer', // or 'producer' or 'consumer' depending on what team chooses
+    direction: 'ltr',
+    cycleTime: 3,
+    inputs: [],
+    outputs: [],
+    resources: [
+      { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
+      { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
+    ]
   }
+}
+
 ])
 
 function validateResourceFlow(nodes: Node[], edges: Edge[]) {
