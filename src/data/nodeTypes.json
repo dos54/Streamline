@@ -1,0 +1,38 @@
+{
+  "categories": [
+    {
+      "id": "basic",
+      "name": "Basic Nodes",
+      "nodes": [
+        {
+          "id": "producer",
+          "type": "producer",
+          "name": "Producer",
+          "description": "Generates resources with configurable outputs",
+          "icon": "⚙️",
+          "color": "#4caf50",
+          "defaultData": {
+            "label": "New Producer",
+            "direction": "ltr",
+            "cycleTime": 1,
+            "inputs": [],
+            "outputs": []
+          }
+        },
+        {
+          "id": "consumer",
+          "type": "consumer",
+          "name": "Consumer",
+          "description": "Consumes resources with configurable inputs",
+          "icon": "🏭",
+          "color": "#ff9800",
+          "defaultData": {
+            "label": "New Consumer",
+            "direction": "ltr",
+            "inputs": []
+          }
+        }
+      ]
+    }
+  ]
+}

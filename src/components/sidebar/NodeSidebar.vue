@@ -1,0 +1,160 @@
+<template>
+  <div class="node-sidebar">
+    <div class="sidebar-header">
+      <h3>Node Library</h3>
+    </div>
+
+    <div class="node-categories">
+      <div
+        v-for="category in nodeData.categories"
+        :key="category.id"
+        class="category"
+      >
+        <h4>{{ category.name }}</h4>
+        <div
+          v-for="node in category.nodes"
+          :key="node.id"
+          class="sidebar-node"
+          :class="node.type"
+          :style="{ borderLeftColor: node.color }"
+        >
+          <div class="node-icon">{{ node.icon }}</div>
+          <div class="node-info">
+            <div class="node-title">{{ node.name }}</div>
+            <div class="node-description">{{ node.description }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import nodeTypesData from '@/data/nodeTypes.json'
+
+type NodeType = {
+  id: string
+  type: string
+  name: string
+  description: string
+  icon: string
+  color: string
+  defaultData: never
+}
+
+type Category = {
+  id: string
+  name: string
+  nodes: NodeType[]
+}
+
+type NodeData = {
+  categories: Category[]
+}
+
+const nodeData = ref<NodeData>({ categories: [] })
+
+onMounted(() => {
+  nodeData.value = nodeTypesData as NodeData
+})
+</script>
+
+<style scoped>
+.node-sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fff;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.node-categories {
+  padding: 1rem;
+  flex: 1;
+}
+
+.category {
+  margin-bottom: 1.5rem;
+}
+
+.category h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.sidebar-node {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.sidebar-node:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.sidebar-node:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
+
+.node-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.node-info {
+  flex: 1;
+}
+
+.node-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.node-description {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.3;
+}
+
+/* Drag state styles */
+.sidebar-node[draggable="true"]:hover {
+  cursor: grab;
+}
+
+.sidebar-node[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+</style>
