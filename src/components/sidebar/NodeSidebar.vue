@@ -127,6 +127,14 @@ onMounted(() => {
   transform: translateY(0);
 }
 
+.sidebar-node.producer {
+  border-left: 4px solid #4caf50;
+}
+
+.sidebar-node.consumer {
+  border-left: 4px solid #ff9800;
+}
+
 .node-icon {
   font-size: 1.5rem;
   line-height: 1;
