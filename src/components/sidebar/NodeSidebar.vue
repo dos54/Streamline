@@ -17,6 +17,8 @@
           class="sidebar-node"
           :class="node.type"
           :style="{ borderLeftColor: node.color }"
+          :draggable="true"
+          @dragstart="onDragStart($event,`${node.type}`)"
         >
           <div class="node-icon">{{ node.icon }}</div>
           <div class="node-info">
@@ -54,6 +56,14 @@ type NodeData = {
 }
 
 const nodeData = ref<NodeData>({ categories: [] })
+
+function onDragStart(event: DragEvent, nodeType: any) {
+  console.log("DRAG")
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('application/vueflow', nodeType)
+    event.dataTransfer.effectAllowed = 'move'
+  }
+}
 
 onMounted(() => {
   nodeData.value = nodeTypesData as NodeData

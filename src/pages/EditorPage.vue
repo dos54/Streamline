@@ -3,13 +3,17 @@ import CanvasView from '@/components/CanvasView.vue';
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue';
 import SettingsModal from '@/components/modals/SettingsModal.vue';
 import { useHead } from '@unhead/vue';
-useHead({title: 'Editor'})
+import useDragAndDrop from '@/useDnD';
+useHead({ title: 'Editor' })
+
+const { onDragOver, onDrop } = useDragAndDrop()
+
 </script>
 
 <template>
-  <div class="editor-layout">
+  <div class="editor-layout" @dragover="onDragOver" @drop="onDrop">
     <NodeSidebar />
-    <CanvasView />
+    <CanvasView/>
   </div>
 
   <SettingsModal />

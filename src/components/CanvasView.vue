@@ -7,6 +7,7 @@
       :zoom-on-scroll="true"
       :pan-on-drag="true"
       @pane-ready="handlePaneReady"
+      @connect="addEdges"
       class="fill"
     >
       <Background variant="dots" :gap="20" :size="1" />
@@ -26,7 +27,7 @@ import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 
-const { fitView } = useVueFlow()
+const { fitView, addEdges } = useVueFlow()
 
 function handlePaneReady() {
   fitView({ padding: 0.2 })
