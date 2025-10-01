@@ -35,14 +35,14 @@
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 
-export type NodeType = {
+type NodeType = {
   id: string
-  type: string
+  type: 'machine' | 'source' | 'sink'
   name: string
   description: string
   icon: string
   color: string
-  defaultData: never
+  defaultData: Record<string, any>
 }
 
 type Category = {

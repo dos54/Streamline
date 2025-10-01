@@ -1,6 +1,6 @@
 <template>
-  <div v-if="projectStore.current">
-    <CanvasView />
+  <div v-if="projectStore.current" @dragover="onDragOver" @drop="onDrop">
+    <CanvasView :nodes="projectStore.nodes" :edges="projectStore.edges" @connect="onConnect"/>
   </div>
   <div v-else class="loading">
     <span class="spinner"></span>
@@ -9,6 +9,9 @@
 </template>
 
 <script setup lang="ts">
+import { useVueFlow } from '@vue-flow/core'
+import type { Connection } from '@vue-flow/core'
+import useDragAndDrop from '@/useDnD'
 import CanvasView from '@/components/CanvasView.vue'
 import { onMounted, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
@@ -16,6 +19,24 @@ import { useProjectStore } from '@/stores/project.store'
 
 const route = useRoute()
 const projectStore = useProjectStore()
+
+const { addNodes, addEdges, screenToFlowCoordinate} = useVueFlow()
+const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
+
+function onDrop(event: DragEvent) {
+  const newNode = onDropHandler(event, screenToFlowCoordinate)
+  if (newNode) {
+    projectStore.upsertNode(newNode)
+  }
+}
+
+function onConnect(params: Connection) {
+  projectStore.upsertEdge({
+    ...params, source: params.source, target: params.target, sourceHandle: '', targetHandle: '',
+    id: '',
+    enabled: false
+  })
+}
 
 onMounted(() => {
   const id = typeof route.params.id === 'string' ? route.params.id : ''

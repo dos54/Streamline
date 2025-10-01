@@ -1,6 +1,6 @@
 // use Drag and Drop helper functions
 
-import type { NodeType } from "./components/sidebar/NodeSidebar.vue";
+import type { GraphNode } from "./types/graphNode"
 
 let id = 0
 
@@ -26,17 +26,21 @@ export default function useDragAndDrop() {
             return null // non-valid drop.
         }
 
-        const draggedNode: NodeType = JSON.parse(nodeString)
+        const draggedNode: GraphNode = JSON.parse(nodeString)
 
-        const position = screenToFlowCoordinate({
+        const position: { x: number, y: number } = screenToFlowCoordinate({
             x: event.clientX,
             y: event.clientY,
         })
         const newNode = {
-            id: getId(),
+            id: getId(), // TODO: change to nanoId 
             type: draggedNode.type,
+            name: `${draggedNode.type}-${id}`,
             position,
-            data: draggedNode.defaultData
+            templateId: '',
+            data: {
+                ...draggedNode.data,
+            },
         }
 
         return newNode
