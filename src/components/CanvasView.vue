@@ -209,8 +209,8 @@ watchEffect(() => {
 
 <style scoped>
 .canvas-wrapper {
-  width: 100svw;
-  height: 100svh;
+  flex: 1;
+  height: 100vh;
 }
 
 .fill {

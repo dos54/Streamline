@@ -4,6 +4,7 @@ import SettingsModal from '@/components/modals/SettingsModal.vue'
 import JsonImport from '@/components/JsonImport.vue'
 import { useHead } from '@unhead/vue'
 import { useProjectStore } from '@/stores/project.store'
+import NodeSidebar from '@/components/sidebar/NodeSidebar.vue';
 
 useHead({ title: 'Editor' })
 
@@ -19,7 +20,18 @@ function handleClear() {
 </script>
 
 <template>
-  <JsonImport @inject="handleInject" @clear="handleClear" />
-  <CanvasView />
-  <SettingsModal />
+  <div class="editor-layout">
+    <NodeSidebar />
+    <CanvasView />
+    <JsonImport @inject="handleInject" @clear="handleClear" />
+    <SettingsModal />
+  </div>
 </template>
+<style scoped>
+.editor-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+</style>
+
