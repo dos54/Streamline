@@ -17,7 +17,7 @@ const base = import.meta.env.BASE_URL
 .toolbar {
   position: absolute;
   top: 8px;
-  left: 8px;
+  left: 258px; /* 250px sidebar width + 8px margin */
   pointer-events: auto;
 
   background-color: var(--overlay-bg);
