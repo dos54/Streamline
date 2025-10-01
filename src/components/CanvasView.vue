@@ -1,8 +1,8 @@
 <template>
   <div class="canvas-wrapper">
     <VueFlow
-      :nodes="nodes"
-      :edges="edges"
+      v-model:nodes="nodes"
+      v-model:edges="edges"
       :node-types="nodeTypes"
       :zoom-on-scroll="true"
       :pan-on-drag="true"
