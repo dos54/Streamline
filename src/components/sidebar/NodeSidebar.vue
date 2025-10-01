@@ -17,6 +17,8 @@
           class="sidebar-node"
           :class="node.type"
           :style="{ borderLeftColor: node.color }"
+          :draggable="true"
+          @dragstart="onDragStart($event, node)"
         >
           <div class="node-icon">{{ node.icon }}</div>
           <div class="node-info">
@@ -35,12 +37,12 @@ import nodeTypesData from '@/data/nodeTypes.json'
 
 type NodeType = {
   id: string
-  type: string
+  type: 'machine' | 'source' | 'sink'
   name: string
   description: string
   icon: string
   color: string
-  defaultData: never
+  defaultData: Record<string, any>
 }
 
 type Category = {
@@ -54,6 +56,13 @@ type NodeData = {
 }
 
 const nodeData = ref<NodeData>({ categories: [] })
+
+function onDragStart(event: DragEvent, node: NodeType) {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('application/vueflow', JSON.stringify(node))
+    event.dataTransfer.effectAllowed = 'move'
+  }
+}
 
 onMounted(() => {
   nodeData.value = nodeTypesData as NodeData

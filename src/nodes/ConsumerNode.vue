@@ -16,7 +16,7 @@
       Flow: {{ currentDirection }} {{ directionArrow }}
     </button>
 
-    <div class="status-section" v-if="data.statusMessages?.length">
+    <div class="status-section" v-if="data?.statusMessages?.length">
       <h3>Status</h3>
       <ul>
         <li v-for="(msg, index) in data.statusMessages" :key="index">
@@ -33,7 +33,7 @@
       <div class="inputs-section">
         <h3>{{ currentDirection === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div v-for="(input, index) in data.inputs" :key="index" class="input-row">
+          <div v-for="(input, index) in data?.inputs" :key="index" class="input-row">
             <label>Input {{ index + 1 }}</label>
 
             <select v-model="input.resourceId" @change="syncUnit(input)">
@@ -102,7 +102,7 @@ const props = defineProps<{
 
 const data = props.data
 
-const editableLabel = ref(data.label)
+const editableLabel = ref(data?.label)
 function updateLabel() {
   data.label = editableLabel.value
 }
@@ -121,11 +121,11 @@ function isValidResource(r: { resourceId: string; perCycle: number }) {
 }
 
 const isNodeValid = computed(() =>
-  data.inputs.every(isValidResource)
+  data?.inputs?.every(isValidResource)
 )
 
 //  Direction toggle logic
-const currentDirection = ref(data.direction || 'ltr')
+const currentDirection = ref(data?.direction || 'ltr')
 const directionArrow = computed(() =>
   currentDirection.value === 'rtl' ? '←' : '→'
 )
