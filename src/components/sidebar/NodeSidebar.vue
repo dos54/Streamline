@@ -18,7 +18,7 @@
           :class="node.type"
           :style="{ borderLeftColor: node.color }"
           :draggable="true"
-          @dragstart="onDragStart($event,`${node.type}`)"
+          @dragstart="onDragStart($event, node)"
         >
           <div class="node-icon">{{ node.icon }}</div>
           <div class="node-info">
@@ -35,7 +35,7 @@
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 
-type NodeType = {
+export type NodeType = {
   id: string
   type: string
   name: string
@@ -57,10 +57,9 @@ type NodeData = {
 
 const nodeData = ref<NodeData>({ categories: [] })
 
-function onDragStart(event: DragEvent, nodeType: any) {
-  console.log("DRAG")
+function onDragStart(event: DragEvent, node: NodeType) {
   if (event.dataTransfer) {
-    event.dataTransfer.setData('application/vueflow', nodeType)
+    event.dataTransfer.setData('application/vueflow', JSON.stringify(node))
     event.dataTransfer.effectAllowed = 'move'
   }
 }

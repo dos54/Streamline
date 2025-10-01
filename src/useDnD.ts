@@ -1,6 +1,6 @@
 // use Drag and Drop helper functions
 
-import { useVueFlow } from "@vue-flow/core";
+import type { NodeType } from "./components/sidebar/NodeSidebar.vue";
 
 let id = 0
 
@@ -11,7 +11,6 @@ function getId() {
 }
 
 export default function useDragAndDrop() {
-    const { addNodes, screenToFlowCoordinate } = useVueFlow()
 
     function onDragOver(event: DragEvent) {
         event.preventDefault()
@@ -20,25 +19,27 @@ export default function useDragAndDrop() {
         }
     }
 
-    function onDrop(event: DragEvent) {
-        const type = event.dataTransfer?.getData('application/vueflow')
-        if (!type) {
-            return
+    function onDrop(event: DragEvent, screenToFlowCoordinate: (arg0: { x: number; y: number; }) => any) {
+
+        const nodeString = event.dataTransfer?.getData('application/vueflow') // stringnified node
+        if (!nodeString) {
+            return null // non-valid drop.
         }
+
+        const draggedNode: NodeType = JSON.parse(nodeString)
 
         const position = screenToFlowCoordinate({
             x: event.clientX,
             y: event.clientY,
         })
-
         const newNode = {
             id: getId(),
-            type,
+            type: draggedNode.type,
             position,
-            label: `${type} node`
+            data: draggedNode.defaultData
         }
 
-        addNodes([newNode])
+        return newNode
     }
 
     return {
