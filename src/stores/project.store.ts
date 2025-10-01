@@ -8,6 +8,7 @@ import type { GraphEdge } from '@/types/graphEdge'
 
 export const useProjectStore = defineStore('project', {
   state: () => ({ current: null as Project | null }),
+
   getters: {
     nodes: (s) => s.current?.nodes ?? [],
     edges: (s) => s.current?.edges ?? [],
@@ -24,6 +25,7 @@ export const useProjectStore = defineStore('project', {
       const parsed = ProjectZ.parse(p)
       this.current = parsed
     },
+
     async save() {
       if (!this.current) return
       const raw = toRaw(this.current)
@@ -43,6 +45,7 @@ export const useProjectStore = defineStore('project', {
       if (i === -1) this.current.nodes.push(node)
       else Object.assign(this.current.nodes[i], node)
     },
+
     removeNode(id: string) {
       if (!this.current) throw new Error('No project loaded')
       this.current.nodes = this.current.nodes.filter((n) => n.id !== id)
@@ -55,9 +58,22 @@ export const useProjectStore = defineStore('project', {
       if (i === -1) this.current.edges.push(edge)
       else Object.assign(this.current.edges[i], edge)
     },
+
     removeEdge(id: string) {
       if (!this.current) throw new Error('No project loaded')
       this.current.edges = this.current.edges.filter((e) => e.id !== id)
+    },
+
+    injectNodes(newNodes: GraphNode[]) {
+      if (!this.current) throw new Error('No project loaded')
+      this.current.nodes = newNodes
+      this.current.edges = []
+    },
+
+    clearNodes() {
+      if (!this.current) throw new Error('No project loaded')
+      this.current.nodes = []
+      this.current.edges = []
     },
   },
 })

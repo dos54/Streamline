@@ -19,6 +19,10 @@
       <input type="file" accept=".json" @change="handleFileUpload" />
       <button @click="validateJson">Validate</button>
 
+      <button @click="clearCanvas" class="btn danger">
+        Clear Canvas
+      </button>
+
       <div v-if="validationResult">
         <p v-if="validationResult.valid" style="color: green">✅ JSON is valid!</p>
         <ul v-else style="color: red">
@@ -31,25 +35,57 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import { validateNodeJson } from '../utils/nodeValidator'
+import type { ZodIssue } from 'zod'
+
+const emit = defineEmits<{
+  (e: 'inject', nodes: any[]): void
+  (e: 'clear'): void
+}>()
 
 const isOpen = ref(false)
 const jsonText = ref('')
-const validationResult = ref<ReturnType<typeof validateNodeJson> | null>(null)
+const validationResult = ref<{
+  valid: boolean
+  errors: ZodIssue[]
+} | null>(null)
 
 function validateJson() {
+  console.log('Validate clicked')
   try {
     const parsed = JSON.parse(jsonText.value)
-    validationResult.value = validateNodeJson(parsed)
+    console.log('Parsed JSON:', parsed)
+
+    const result = validateNodeJson(parsed)
+    console.log('Validation result:', JSON.stringify(result, null, 2))
+
+    validationResult.value = result
+
+    if (result.valid) {
+      console.log('Emitting inject event')
+      emit('inject', parsed)
+    }
   } catch (err) {
+    console.error('JSON parse error:', err)
     validationResult.value = {
       valid: false,
-      errors: [{ message: 'Invalid JSON format' }]
+      errors: [
+        {
+          code: 'custom',
+          message: 'Invalid JSON format',
+          path: [],
+          input: jsonText.value
+        }
+      ]
     }
   }
+}
+
+function clearCanvas() {
+  console.log('Clear button clicked')
+  emit('clear')
 }
 
 function handleFileUpload(event: Event) {

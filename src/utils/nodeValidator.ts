@@ -6,26 +6,33 @@ const resourceSchema = z.object({
   perCycle: z.number().nonnegative()
 })
 
+const resourceMetaSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  defaultUnitId: z.string().optional()
+})
+
 export const nodeSchema = z.object({
-  label: z.string(),
-  mode: z.enum(['producer', 'consumer', 'transformer']),
-  direction: z.enum(['ltr', 'rtl']),
-  cycleTime: z.number().positive(),
-  inputs: z.array(resourceSchema),
-  outputs: z.array(resourceSchema),
-  resources: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      defaultUnitId: z.string()
-    })
-  )
+  id: z.string(),
+  type: z.enum(['producer', 'consumer', 'transformer']),
+  position: z.object({
+    x: z.number(),
+    y: z.number()
+  }),
+  data: z.object({
+    label: z.string(),
+    direction: z.enum(['ltr', 'rtl']),
+    cycleTime: z.number().positive().optional(),
+    inputs: z.array(resourceSchema).optional(),
+    outputs: z.array(resourceSchema).optional(),
+    resources: z.array(resourceMetaSchema)
+  })
 })
 
 export function validateNodeJson(json: unknown) {
-  const result = nodeSchema.safeParse(json)
+  const result = z.array(nodeSchema).safeParse(json)
   return {
     valid: result.success,
-    errors: result.success ? [] : result.error.errors
+    errors: result.success ? [] : result.error?.issues ?? []
   }
 }

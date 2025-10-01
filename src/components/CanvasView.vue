@@ -11,7 +11,11 @@
     >
       <Background variant="dots" :gap="20" :size="1" />
     </VueFlow>
+
     <CanvasOverlay />
+
+    <!-- Floating JSON Import Panel -->
+    <JsonImport @inject="replaceCanvasNodes" @clear="clearCanvas" />
   </div>
 </template>
 
@@ -26,14 +30,25 @@ import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
+import JsonImport from '../components/JsonImport.vue'
 
-
-
-const { fitView } = useVueFlow()
+const { fitView, addNodes, removeNodes } = useVueFlow()
 
 function handlePaneReady() {
   fitView({ padding: 0.2 })
 }
+
+function replaceCanvasNodes(json: Node[]) {
+  removeNodes()
+  addNodes(json)
+}
+
+function clearCanvas() {
+  console.log('Clearing canvas...')
+  nodes.value = []
+  edges.value = []
+}
+
 
 const nodeTypes: NodeTypesObject = {
   producer: ProducerNode as Component,
@@ -72,12 +87,10 @@ const nodes = ref<Node[]>([
         { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
         { resourceId: 'steel', unitId: 'kg', perCycle: 2 }
       ],
-outputs: [
-  { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
-  { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
-]
-
-,
+      outputs: [
+        { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
+        { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
+      ],
       resources: [
         { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
         { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
@@ -100,23 +113,22 @@ outputs: [
     }
   },
   {
-  id: 'smart-1',
-  type: 'smart',
-  position: { x: 250, y: 400 },
-  data: {
-    label: 'Smart Node',
-    mode: 'transformer', // or 'producer' or 'consumer' depending on what team chooses
-    direction: 'ltr',
-    cycleTime: 3,
-    inputs: [],
-    outputs: [],
-    resources: [
-      { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
-      { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
-    ]
+    id: 'smart-1',
+    type: 'smart',
+    position: { x: 250, y: 400 },
+    data: {
+      label: 'Smart Node',
+      mode: 'transformer',
+      direction: 'ltr',
+      cycleTime: 3,
+      inputs: [],
+      outputs: [],
+      resources: [
+        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
+        { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
+      ]
+    }
   }
-}
-
 ])
 
 function validateResourceFlow(nodes: Node[], edges: Edge[]) {
@@ -142,7 +154,7 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 
       results.push({
         edgeId: edge.id,
-        target: edge.target, // link result to consumer node
+        target: edge.target,
         resourceId: input.resourceId,
         valid: !!match,
         message: match
@@ -158,8 +170,6 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 const validationResults = computed(() =>
   validateResourceFlow(nodes.value, edges.value)
 )
-
-
 
 watchEffect(() => {
   const results = validationResults.value
@@ -195,12 +205,7 @@ watchEffect(() => {
     }
   }
 })
-
-
-
 </script>
-
-
 
 <style scoped>
 .canvas-wrapper {
