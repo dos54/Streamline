@@ -23,14 +23,22 @@
         Clear Canvas
       </button>
 
-      <div v-if="validationResult">
-        <p v-if="validationResult.valid" style="color: green">✅ JSON is valid!</p>
-        <ul v-else style="color: red">
+      <div v-if="validationResult && validationResult.valid" style="color: green">
+        ✅ JSON is valid!
+      </div>
+
+      <div v-if="validationResult && !validationResult.valid">
+        <ul style="color: red">
           <li v-for="(error, index) in validationResult.errors" :key="index">
             {{ error.message }}
           </li>
         </ul>
       </div>
+
+      <div v-if="errorMessage && (!validationResult || !validationResult.valid)" style="color: red; margin-top: 0.5rem">
+  {{ errorMessage }}
+</div>
+
     </div>
   </div>
 </template>
@@ -47,41 +55,31 @@ const emit = defineEmits<{
 
 const isOpen = ref(false)
 const jsonText = ref('')
+const errorMessage = ref('')
 const validationResult = ref<{
   valid: boolean
   errors: ZodIssue[]
 } | null>(null)
 
 function validateJson() {
-  console.log('Validate clicked')
   try {
     const parsed = JSON.parse(jsonText.value)
-    console.log('Parsed JSON:', parsed)
-
     const result = validateNodeJson(parsed)
-    console.log('Validation result:', JSON.stringify(result, null, 2))
-
     validationResult.value = result
 
     if (result.valid) {
-      console.log('Emitting inject event')
+      errorMessage.value = '' // ← This clears the old error
       emit('inject', parsed)
+    } else {
+      errorMessage.value = 'Validation failed: ' +
+        result.errors.map(e => e.message).join(', ')
     }
   } catch (err) {
-    console.error('JSON parse error:', err)
-    validationResult.value = {
-      valid: false,
-      errors: [
-        {
-          code: 'custom',
-          message: 'Invalid JSON format',
-          path: [],
-          input: jsonText.value
-        }
-      ]
-    }
+    errorMessage.value = 'Invalid JSON format'
+    validationResult.value = null
   }
 }
+
 
 function clearCanvas() {
   console.log('Clear button clicked')
