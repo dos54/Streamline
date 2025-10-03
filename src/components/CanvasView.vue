@@ -1,20 +1,23 @@
 <template>
-  <div class="canvas-wrapper">
-    <VueFlow
-      v-model:nodes="nodes"
-      v-model:edges="edges"
-      :node-types="nodeTypes"
-      :zoom-on-scroll="true"
-      :pan-on-drag="true"
-      @pane-ready="handlePaneReady"
-      class="fill"
-    >
-      <Background variant="dots" :gap="20" :size="1" />
-    </VueFlow>
+  <div class="editor-layout">
+    <div class="canvas-wrapper">
+      <VueFlow
+        v-model:nodes="nodes"
+        v-model:edges="edges"
+        :node-types="nodeTypes"
+        :zoom-on-scroll="true"
+        :pan-on-drag="true"
+        @pane-ready="handlePaneReady"
+        class="fill"
+      >
+        <Background variant="dots" :gap="20" :size="1" />
+      </VueFlow>
 
-    <CanvasOverlay />
+      <CanvasOverlay />
+    </div>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
@@ -33,7 +36,10 @@ const projectStore = useProjectStore()
 const { fitView } = useVueFlow()
 
 function handlePaneReady() {
-  fitView({ padding: 0.2 })
+  // ✅ Wait for viewport to be ready before fitting view
+  requestAnimationFrame(() => {
+    fitView({ padding: 0.2 })
+  })
 }
 
 const nodeTypes: NodeTypesObject = {
@@ -147,9 +153,18 @@ watchEffect(() => {
 </script>
 
 <style scoped>
+.editor-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
 .canvas-wrapper {
   flex: 1;
-  height: 100vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .fill {

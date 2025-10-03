@@ -4,7 +4,7 @@ import SettingsModal from '@/components/modals/SettingsModal.vue'
 import JsonImport from '@/components/JsonImport.vue'
 import { useHead } from '@unhead/vue'
 import { useProjectStore } from '@/stores/project.store'
-import NodeSidebar from '@/components/sidebar/NodeSidebar.vue';
+
 
 useHead({ title: 'Editor' })
 

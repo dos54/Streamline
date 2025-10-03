@@ -32,14 +32,14 @@
     </div>
 
     <div class="io-wrapper" :class="direction">
-      <div class="inputs-section" v-if="Array.isArray(data.inputs)">
+      <!-- Inputs Section -->
+      <div class="inputs-section" v-if="data.inputs?.length >= 0">
         <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
           <div
             v-for="(input, index) in data.inputs"
             :key="index"
             class="input-row"
-            style="position: relative"
           >
             <label>Input {{ index + 1 }}</label>
 
@@ -50,10 +50,21 @@
               class="row-handle"
             />
 
-            <select v-model="input.resourceId">
+            <select v-model="input.resourceId" @change="syncUnitForInput(input)">
               <option value="">Select resource</option>
               <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
                 {{ res.name }}
+              </option>
+            </select>
+
+            <select
+              v-model="input.unitId"
+              :class="{ 'auto-filled': wasAutoFilled(input) }"
+              :title="wasAutoFilled(input) ? 'Default unit applied from resource' : ''"
+            >
+              <option value="">Select unit</option>
+              <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
+                {{ unit.label }}
               </option>
             </select>
 
@@ -65,22 +76,24 @@
               placeholder="perCycle"
             />
 
-            <div v-if="!input.resourceId || input.perCycle <= 0" class="validation-warning">
-              ⚠️ Resource and perCycle required
+            <button @click="removeInput(index)" class="remove-button" title="Remove input">✖️</button>
+
+            <div v-if="!input.resourceId || !input.unitId || input.perCycle <= 0" class="validation-warning">
+              ⚠️ Resource, unit, and perCycle required
             </div>
           </div>
         </div>
         <button @click="addInput" class="add-button">+ Add Input</button>
       </div>
 
-      <div class="outputs-section" v-if="Array.isArray(data.outputs)">
+      <!-- Outputs Section -->
+      <div class="outputs-section" v-if="data.outputs?.length >= 0">
         <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list">
           <div
             v-for="(output, index) in data.outputs"
-            :key="output.id"
+            :key="output.id || index"
             class="output-row"
-            style="position: relative"
           >
             <label>
               Output {{ index + 1 }}
@@ -91,10 +104,9 @@
             <Handle
               type="source"
               :position="outputPosition"
-              :id="`output-${output.id}`"
+              :id="`output-${output.id || index}`"
               class="row-handle"
             />
-              
 
             <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
@@ -122,6 +134,8 @@
               placeholder="perCycle"
             />
 
+            <button @click="removeOutput(index)" class="remove-button" title="Remove output">✖️</button>
+
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
@@ -137,153 +151,131 @@
 
 
 
+
+
+
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
-import { Handle, Position } from '@vue-flow/core'
-import { useProjectStore } from '../stores/project.store'
-import type { Unit } from '@/types/project'
+import { ref, computed, watch } from 'vue'
+import { Position } from '@vue-flow/core'
+import type { HandleType } from '@vue-flow/core'
 
-const project = useProjectStore()
-
+// Props
 const props = defineProps<{
   data: {
     label: string
     direction?: 'ltr' | 'rtl'
     mode: 'producer' | 'consumer' | 'transformer'
     cycleTime: number
-    inputs: {
-      resourceId: string
-      perCycle: number
-    }[]
-    outputs: {
-      id: string
-      resourceId: string
-      unitId: string
-      perCycle: number
-    }[]
-    resources?: {
-      id: string
-      name: string
-      defaultUnitId: string
-    }[]
+    inputs?: { resourceId: string; unitId: string; perCycle: number }[]
+    outputs?: { id?: string; resourceId: string; unitId: string; perCycle: number }[]
+    resources?: { id: string; name: string; defaultUnitId: string }[]
     statusColor?: string
   }
 }>()
 
-
 const data = props.data
 
+// Ensure inputs/outputs are always arrays
+if (!data.inputs) data.inputs = []
+if (!data.outputs) data.outputs = []
+
+// Label editing
 const editableLabel = ref(data.label)
 function updateLabel() {
   data.label = editableLabel.value
 }
+watch(() => data.label, newLabel => {
+  editableLabel.value = newLabel
+})
 
-// 🔁 Direction toggle logic
+// Direction toggle
 const direction = ref(data.direction ?? 'ltr')
-const directionArrow = computed(() =>
-  direction.value === 'rtl' ? '←' : '→'
-)
+function toggleDirection() {
+  direction.value = direction.value === 'ltr' ? 'rtl' : 'ltr'
+  data.direction = direction.value
+}
+const directionArrow = computed(() => (direction.value === 'ltr' ? '→' : '←'))
+
+// Handle positions
 const inputPosition = computed(() =>
   direction.value === 'rtl' ? Position.Right : Position.Left
 )
 const outputPosition = computed(() =>
   direction.value === 'rtl' ? Position.Left : Position.Right
 )
-function toggleDirection() {
-  direction.value = direction.value === 'ltr' ? 'rtl' : 'ltr'
-  data.direction = direction.value
+
+// Resource and unit options
+const resourceOptions = computed(() => data.resources ?? [])
+const unitOptions = computed(() =>
+  resourceOptions.value.map(res => ({
+    id: res.defaultUnitId,
+    label: res.defaultUnitId
+  }))
+)
+
+// Auto-fill detection
+function wasAutoFilled(entry: { unitId: string; resourceId: string }) {
+  const res = resourceOptions.value.find(r => r.id === entry.resourceId)
+  return res?.defaultUnitId === entry.unitId
 }
 
-// ➕ Add input/output
+// Sync unit when resource changes
+function syncUnit(output: { resourceId: string; unitId: string }) {
+  const res = resourceOptions.value.find(r => r.id === output.resourceId)
+  if (res && !output.unitId) {
+    output.unitId = res.defaultUnitId
+  }
+}
+function syncUnitForInput(input: { resourceId: string; unitId: string }) {
+  const res = resourceOptions.value.find(r => r.id === input.resourceId)
+  if (res && !input.unitId) {
+    input.unitId = res.defaultUnitId
+  }
+}
+
+// Add/remove inputs
 function addInput() {
-  data.inputs.push({
-    resourceId: '',
-    perCycle: 0,
-  })
+  data.inputs.push({ resourceId: '', unitId: '', perCycle: 0 })
+}
+function removeInput(index: number) {
+  data.inputs.splice(index, 1)
 }
 
-function createOutput() {
-  return {
+// Add/remove outputs
+function addOutput() {
+  data.outputs.push({
     id: crypto.randomUUID(),
     resourceId: '',
     unitId: '',
-    perCycle: 0,
-  }
+    perCycle: 0
+  })
+}
+function removeOutput(index: number) {
+  data.outputs.splice(index, 1)
 }
 
-function addOutput() {
-  data.outputs.push(createOutput())
-}
-
-// ✅ Validation helpers
-function isValidResource(r: { resourceId: string; perCycle: number }) {
-  return r.resourceId !== '' && r.perCycle > 0
-}
-
-const isNodeValid = computed(() => {
-  const inputsValid = data.inputs.every(isValidResource)
-  const outputsValid = data.outputs.every(isValidResource)
-  return inputsValid && outputsValid
-})
-
-// ⚠️ Simulated consumer demand (replace with real graph data later)
-const connectedConsumers = ref([
-  { resourceId: 'power', required: 5 },
-  { resourceId: 'steel', required: 10 },
-])
-
-function validateOutput(output: typeof data.outputs[number]) {
-  if (!output.resourceId || output.perCycle <= 0) return 'invalid'
-
-  const matchingConsumers = connectedConsumers.value.filter(
-    (c) => c.resourceId === output.resourceId
-  )
-
-  const totalRequired = matchingConsumers.reduce((sum, c) => sum + c.required, 0)
-  return output.perCycle >= totalRequired ? 'valid' : 'invalid'
-}
-
+// Output status tracking
 const outputStatus = computed(() =>
-  data.outputs.map(validateOutput)
+  data.outputs.map(output =>
+    output.resourceId && output.unitId && output.perCycle > 0
+      ? 'valid'
+      : 'invalid'
+  )
 )
 
-// ✨ Auto-fill unitId when resource is selected
-function syncUnit(output: typeof data.outputs[number]) {
-  if (!output.resourceId) return
-
-  const resource = project.resources?.find((r) => r.id === output.resourceId)
-  if (resource && !output.unitId) {
-    output.unitId = resource.defaultUnitId ?? ''
-  }
-}
-
-function wasAutoFilled(output: typeof data.outputs[number]) {
-  const resource = project.resources?.find((r) => r.id === output.resourceId)
-  return resource?.defaultUnitId === output.unitId
-}
-
-
-// 📦 Resource and unit dropdowns
-const resourceOptions = computed(() =>
-  (project.resources ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-  }))
-)
-
-const unitOptions = computed(() =>
-  ((project.units ?? []) as Unit[]).map((u) => ({
-    id: u.id,
-    label: `${u.name} (${u.symbol})`,
-  }))
-)
-
-watchEffect(() => {
-  console.log('Project loaded?', !!project.current)
-  console.log('Resources:', project.resources ?? [])
-  console.log('Units:', project.units ?? [])
+// Node validation
+const isNodeValid = computed(() => {
+  const allInputsValid = data.inputs.every(
+    i => i.resourceId && i.unitId && i.perCycle > 0
+  )
+  const allOutputsValid = data.outputs.every(
+    o => o.resourceId && o.unitId && o.perCycle > 0
+  )
+  return allInputsValid && allOutputsValid
 })
 </script>
+
+
 
 
 
@@ -332,8 +324,13 @@ watchEffect(() => {
   transition: background 0.2s ease;
 }
 
-.direction-toggle:hover {
-  background: #b2dfdb;
+.direction-toggle {
+  margin-bottom: 12px;
+  background-color: #e0e0e0;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
 
@@ -352,6 +349,7 @@ watchEffect(() => {
 .input-row,
 .output-row {
   display: flex;
+  position: relative;
   flex-direction: column;
   gap: 0.3rem;
 }
@@ -434,8 +432,9 @@ watchEffect(() => {
 .input-row,
 .output-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .status-icon {
@@ -453,12 +452,28 @@ select.auto-filled {
   top: 50%;
   transform: translateY(-50%);
   left: -12px; /* or right: -12px for RTL */
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   background-color: #4caf50;
   border: 2px solid white;
   border-radius: 50%;
   z-index: 10;
+}
+
+.remove-button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #f44336;
+  margin-left: auto;
+  padding: 0.2rem 0.4rem;
+  align-self: center;
+  transition: color 0.2s ease;
+}
+
+.remove-button:hover {
+  color: #d32f2f;
 }
 
 

@@ -35,16 +35,19 @@
         </ul>
       </div>
 
-      <div v-if="errorMessage && (!validationResult || !validationResult.valid)" style="color: red; margin-top: 0.5rem">
-  {{ errorMessage }}
-</div>
-
+      <div
+        v-if="errorMessage && (!validationResult || !validationResult.valid)"
+        style="color: red; margin-top: 0.5rem"
+      >
+        {{ errorMessage }}
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useVueFlow } from '@vue-flow/core'
 import { validateNodeJson } from '../utils/nodeValidator'
 import type { ZodIssue } from 'zod'
 
@@ -52,6 +55,8 @@ const emit = defineEmits<{
   (e: 'inject', nodes: any[]): void
   (e: 'clear'): void
 }>()
+
+const { fitView } = useVueFlow()
 
 const isOpen = ref(false)
 const jsonText = ref('')
@@ -63,23 +68,29 @@ const validationResult = ref<{
 
 function validateJson() {
   try {
+    console.log('Raw input:', jsonText.value)
     const parsed = JSON.parse(jsonText.value)
     const result = validateNodeJson(parsed)
     validationResult.value = result
 
     if (result.valid) {
-      errorMessage.value = '' // ← This clears the old error
+      errorMessage.value = ''
       emit('inject', parsed)
+
+      // ✅ Force canvas repaint after injection
+      setTimeout(() => {
+        fitView({ padding: 0.2 })
+      }, 100)
     } else {
-      errorMessage.value = 'Validation failed: ' +
-        result.errors.map(e => e.message).join(', ')
+      errorMessage.value =
+        'Validation failed: ' +
+        result.errors.map((e) => e.message).join(', ')
     }
   } catch (err) {
     errorMessage.value = 'Invalid JSON format'
     validationResult.value = null
   }
 }
-
 
 function clearCanvas() {
   console.log('Clear button clicked')

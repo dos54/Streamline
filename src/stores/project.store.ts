@@ -8,14 +8,66 @@ import type { GraphEdge } from '@/types/graphEdge'
 
 function createEmptyProject(): Project {
   return {
+    id: 'new-project',
+    name: 'Untitled Project',
+    schemaVersion: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    settings: {
+      baseTimeUnitId: 's',
+      defaultRateDisplay: 'per_s',
+      resourceDefaultUnits: {},
+      balancing: {
+        mode: 'per_cycle',
+        targetTimeUnitId: 's',
+        tolerance: 0.01
+      },
+      ui: {
+        snapToGrid: true,
+        gridSize: 20,
+        minimap: true
+      }
+    },
     nodes: [],
     edges: [],
     resources: [],
-    units: [],
-    createdAt: new Date().toISOString(),
-    schemaVersion: '1.0'
+    units: []
   }
 }
+
+
+// 🧠 Normalize legacy node types into SmartNode format
+function normalizeToSmartNode(node: any): GraphNode {
+  const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
+    producer: 'producer',
+    consumer: 'consumer',
+    source: 'producer',
+    sink: 'consumer',
+    machine: 'transformer'
+  }
+
+  const mode = modeMap[node.type] ?? 'transformer'
+
+  return {
+    id: node.id,
+    type: 'smart',
+    mode,
+    name: node.data?.label ?? node.name ?? 'Smart Node',
+    enabled: node.enabled ?? true,
+    position: node.position ?? { x: 0, y: 0 },
+    count: node.count ?? 1,
+    cycleTime: node.data?.cycleTime ?? node.cycleTime ?? 1,
+    inputs: node.data?.inputs ?? node.inputs ?? [],
+    outputs: node.data?.outputs ?? node.outputs ?? [],
+    tags: node.tags ?? [],
+    ui: node.ui ?? {},
+    templateId: node.templateId ?? undefined,
+    data: {
+      resources: node.data?.resources ?? []
+    }
+  }
+}
+
 
 export const useProjectStore = defineStore('project', {
   state: () => ({
@@ -36,7 +88,13 @@ export const useProjectStore = defineStore('project', {
       const p = await db.projects.get(id)
       console.log('Fetched from Dexie:', p)
       if (!p) throw new Error('Project not found')
-      const parsed = ProjectZ.parse(p)
+
+      const normalized = {
+        ...p,
+        nodes: (p.nodes ?? []).map(normalizeToSmartNode)
+      }
+
+      const parsed = ProjectZ.parse(normalized)
       this.current = parsed
       this.projectLoaded = true
     },
@@ -76,16 +134,23 @@ export const useProjectStore = defineStore('project', {
     },
 
     injectNodes(newNodes: GraphNode[]) {
-      this.current.nodes = newNodes
+      console.log('🔍 Raw injected nodes:', newNodes)
+
+      const normalizedNodes = newNodes.map(normalizeToSmartNode)
+      console.log('🧠 Normalized nodes:', JSON.stringify(normalizedNodes, null, 2))
+
+      this.current.nodes = normalizedNodes
       this.current.edges = []
 
-      const allResources = newNodes.flatMap(n => n.data?.resources ?? [])
+      const allResources = normalizedNodes.flatMap(n => n.data?.resources ?? [])
       const uniqueResources = Array.from(new Map(allResources.map(r => [r.id, r])).values())
+      console.log('📦 Extracted resources:', uniqueResources)
 
       this.current.resources = uniqueResources
       this.current.units = [] // Add unit extraction logic if needed
 
       this.projectLoaded = true
+      console.log('✅ Project loaded with', normalizedNodes.length, 'nodes')
     },
 
     clearNodes() {
