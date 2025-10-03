@@ -31,6 +31,22 @@
             "direction": "ltr",
             "inputs": []
           }
+        },
+        {
+          "id": "smart-node",
+          "type": "smart",
+          "name": "Smart Node",
+          "description": "Handles inputs, outputs, and transformation logic",
+          "icon": "🧠",
+          "color": "#2196f3",
+          "defaultData": {
+            "label": "New Smart Node",
+            "direction": "ltr",
+            "mode": "transformer",
+            "cycleTime": 1,
+            "inputs": [],
+            "outputs": []
+          }
         }
       ]
     }

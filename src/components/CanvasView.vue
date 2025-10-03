@@ -1,40 +1,51 @@
 <template>
-  <div class="canvas-wrapper">
-    <VueFlow
-      v-model:nodes="nodes"
-      v-model:edges="edges"
-      :node-types="nodeTypes"
-      :zoom-on-scroll="true"
-      :pan-on-drag="true"
-      @pane-ready="handlePaneReady"
-      class="fill"
-    >
-      <Background variant="dots" :gap="20" :size="1" />
-    </VueFlow>
-    <CanvasOverlay />
+  <div class="editor-layout">
+    <div class="canvas-wrapper">
+      <VueFlow
+        v-model:nodes="nodes"
+        v-model:edges="edges"
+        :node-types="nodeTypes"
+        :zoom-on-scroll="true"
+        :pan-on-drag="true"
+        @pane-ready="handlePaneReady"
+        class="fill"
+      >
+        <Background variant="dots" :gap="20" :size="1" />
+      </VueFlow>
+
+      <CanvasOverlay />
+    </div>
   </div>
 </template>
 
+
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { computed, watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge } from '@vue-flow/core'
+import type { NodeTypesObject, Node as FlowNode, Edge as FlowEdge } from '@vue-flow/core'
 import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
+import { useProjectStore } from '@/stores/project.store'
 
 import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
+import SmartNode from '../nodes/SmartNode.vue'
 
+const projectStore = useProjectStore()
 const { fitView } = useVueFlow()
 
 function handlePaneReady() {
-  fitView({ padding: 0.2 })
+  // ✅ Wait for viewport to be ready before fitting view
+  requestAnimationFrame(() => {
+    fitView({ padding: 0.2 })
+  })
 }
 
 const nodeTypes: NodeTypesObject = {
   producer: ProducerNode as Component,
   consumer: ConsumerNode as Component,
+  smart: SmartNode as Component,
 }
 
 type OutputResource = {
@@ -43,61 +54,29 @@ type OutputResource = {
   perCycle: number
 }
 
-const edges = ref<Edge[]>([
-  {
-    id: 'e1',
-    source: 'producer-1',
-    target: 'consumer-1',
-    label: 'Electricity',
-    animated: true,
-    style: { stroke: '#999' },
-    labelStyle: { fill: '#333', fontSize: 12 }
+type ExtendedNode = FlowNode & {
+  type: string
+  data: {
+    inputs?: OutputResource[]
+    outputs?: OutputResource[]
+    resources?: { id: string; name: string; defaultUnitId?: string }[]
+    statusMessages?: string[]
+    statusColor?: string
   }
-])
+}
 
-const nodes = ref<Node[]>([
-  {
-    id: 'producer-1',
-    type: 'producer',
-    position: { x: 100, y: 200 },
-    data: {
-      label: 'Iron Mine',
-      direction: 'ltr',
-      cycleTime: 5,
-      inputs: [
-        { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
-        { resourceId: 'steel', unitId: 'kg', perCycle: 2 }
-      ],
-outputs: [
-  { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
-  { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
-]
-
-,
-      resources: [
-        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
-        { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
-      ]
-    }
-  },
-  {
-    id: 'consumer-1',
-    type: 'consumer',
-    position: { x: 400, y: 200 },
-    data: {
-      label: 'Smelter',
-      direction: 'ltr',
-      inputs: [
-        { resourceId: 'power', unitId: 'kWh', perCycle: 1 }
-      ],
-      resources: [
-        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' }
-      ]
-    }
+type ExtendedEdge = FlowEdge & {
+  data?: {
+    valid?: boolean
   }
-])
+  style?: Record<string, any>
+  labelStyle?: Record<string, any>
+}
 
-function validateResourceFlow(nodes: Node[], edges: Edge[]) {
+const nodes = computed(() => projectStore.nodes as ExtendedNode[])
+const edges = computed(() => projectStore.edges as ExtendedEdge[])
+
+function validateResourceFlow(nodes: ExtendedNode[], edges: ExtendedEdge[]) {
   const nodeMap = new Map(nodes.map(node => [node.id, node]))
   const results = []
 
@@ -107,8 +86,8 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 
     if (!source || !target) continue
 
-    const outputs = (source.data.outputs ?? []) as OutputResource[]
-    const inputs = (target.data.inputs ?? []) as OutputResource[]
+    const outputs = source.data.outputs ?? []
+    const inputs = target.data.inputs ?? []
 
     for (const input of inputs) {
       const match = outputs.find(
@@ -120,7 +99,7 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 
       results.push({
         edgeId: edge.id,
-        target: edge.target, // link result to consumer node
+        target: edge.target,
         resourceId: input.resourceId,
         valid: !!match,
         message: match
@@ -136,8 +115,6 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 const validationResults = computed(() =>
   validateResourceFlow(nodes.value, edges.value)
 )
-
-
 
 watchEffect(() => {
   const results = validationResults.value
@@ -173,17 +150,21 @@ watchEffect(() => {
     }
   }
 })
-
-
-
 </script>
 
-
-
 <style scoped>
+.editor-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
 .canvas-wrapper {
   flex: 1;
-  height: 100vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .fill {
