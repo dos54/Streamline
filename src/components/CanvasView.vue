@@ -18,7 +18,6 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
@@ -36,7 +35,6 @@ const projectStore = useProjectStore()
 const { fitView } = useVueFlow()
 
 function handlePaneReady() {
-  // ✅ Wait for viewport to be ready before fitting view
   requestAnimationFrame(() => {
     fitView({ padding: 0.2 })
   })
@@ -90,11 +88,10 @@ function validateResourceFlow(nodes: ExtendedNode[], edges: ExtendedEdge[]) {
     const inputs = target.data.inputs ?? []
 
     for (const input of inputs) {
-      const match = outputs.find(
-        output =>
-          output.resourceId === input.resourceId &&
-          output.unitId === input.unitId &&
-          output.perCycle >= input.perCycle
+      const match = outputs.find((output: OutputResource) =>
+        output.resourceId === input.resourceId &&
+        output.unitId === input.unitId &&
+        output.perCycle >= input.perCycle
       )
 
       results.push({

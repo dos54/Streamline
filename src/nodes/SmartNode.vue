@@ -155,29 +155,42 @@
 
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, reactive } from 'vue'
 import { Position } from '@vue-flow/core'
 import type { HandleType } from '@vue-flow/core'
+import { useProjectStore } from '@/stores/project.store'
 
 // Props
+type SmartNodeData = {
+  label: string
+  direction?: 'ltr' | 'rtl'
+  mode: 'producer' | 'consumer' | 'transformer'
+  cycleTime: number
+  inputs: { resourceId: string; unitId: string; perCycle: number }[]
+  outputs: { id?: string; resourceId: string; unitId: string; perCycle: number }[]
+  resources?: { id: string; name: string; defaultUnitId: string }[]
+  statusColor?: string
+}
+
 const props = defineProps<{
-  data: {
-    label: string
-    direction?: 'ltr' | 'rtl'
-    mode: 'producer' | 'consumer' | 'transformer'
-    cycleTime: number
-    inputs?: { resourceId: string; unitId: string; perCycle: number }[]
-    outputs?: { id?: string; resourceId: string; unitId: string; perCycle: number }[]
-    resources?: { id: string; name: string; defaultUnitId: string }[]
-    statusColor?: string
-  }
+  id: string
+  data: Partial<SmartNodeData>
 }>()
 
-const data = props.data
+const nodeId = props.id
+const projectStore = useProjectStore()
 
-// Ensure inputs/outputs are always arrays
-if (!data.inputs) data.inputs = []
-if (!data.outputs) data.outputs = []
+// Wrap data in reactive and ensure inputs/outputs are always arrays
+const data = reactive<SmartNodeData>({
+  label: props.data.label ?? '',
+  direction: props.data.direction ?? 'ltr',
+  mode: props.data.mode ?? 'producer',
+  cycleTime: props.data.cycleTime ?? 0,
+  inputs: props.data.inputs ?? [],
+  outputs: props.data.outputs ?? [],
+  resources: props.data.resources ?? [],
+  statusColor: props.data.statusColor
+})
 
 // Label editing
 const editableLabel = ref(data.label)
@@ -273,7 +286,30 @@ const isNodeValid = computed(() => {
   )
   return allInputsValid && allOutputsValid
 })
+
+// 🔄 Sync changes to store
+watch(
+  () => ({
+    label: data.label,
+    cycleTime: data.cycleTime,
+    direction: data.direction,
+    inputs: data.inputs,
+    outputs: data.outputs
+  }),
+  (newVal) => {
+    const nodeIndex = projectStore.nodes.findIndex(n => n.id === nodeId)
+    if (nodeIndex !== -1) {
+      projectStore.nodes[nodeIndex].data = {
+        ...projectStore.nodes[nodeIndex].data,
+        ...newVal
+      }
+    }
+  },
+  { deep: true }
+)
 </script>
+
+
 
 
 
