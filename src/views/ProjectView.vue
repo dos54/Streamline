@@ -10,24 +10,54 @@
 
 <script setup lang="ts">
 import { useVueFlow } from '@vue-flow/core'
-import type { Connection } from '@vue-flow/core'
+import type { Connection, Node } from '@vue-flow/core'
 import useDragAndDrop from '@/useDnD'
 import CanvasView from '@/components/CanvasView.vue'
 import { onMounted, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/project.store'
+import type { GraphNode } from '@/types/graphNode'
 
 const route = useRoute()
 const projectStore = useProjectStore()
 
-const { addNodes, addEdges, screenToFlowCoordinate} = useVueFlow()
+const { addNodes, addEdges, screenToFlowCoordinate, getNodeTypes, getNodes} = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
 
 function onDrop(event: DragEvent) {
   const newNode = onDropHandler(event, screenToFlowCoordinate)
   if (newNode) {
-    projectStore.upsertNode(newNode)
+    // convert to GraphNode type before upserting
+    const newGraphNode = convertNodeToGraphNode(newNode) 
+
+    projectStore.upsertNode(newGraphNode)
+
   }
+}
+
+function convertNodeToGraphNode(node: Node): GraphNode {
+  return {
+    id: node.id,
+    type: node.type === 'consumer' ? 'sink' : 'source',
+    name: node.data?.label, // use label as name
+    enabled: false, // false by default
+    position: {
+      x: node.position.x,
+      y: node.position.y,
+    },
+    count: 0, // init as zero 
+    cycleTime: node.type === 'producer' ? node?.data?.cycleTime : 0,
+    inputs: [{
+      id: node.data?.inputs[0]?.resourceId ?? 'input-1',
+      perCycle: node?.data?.inputs[0]?.perCycle ?? 1,
+      consumptionChance: node.type === 'consumer' ? 1 : 0, // no chance for producer
+      label: node.data?.label,
+      unitId: node.data?.inputs[0]?.resourceId,
+    }],
+    outputs: [{
+      id: 'output-1', perCycle: node?.data?.inputs[0]?.perCycle ?? 1, consumptionChance: node.type === 'consumer' ? 1 : 0,
+    }]
+  } 
 }
 
 function onConnect(params: Connection) {

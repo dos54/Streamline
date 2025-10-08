@@ -9,7 +9,7 @@ import { useHead } from '@unhead/vue';
 import useDragAndDrop from '@/useDnD';
 useHead({ title: 'Editor' })
 
-const { addNodes, addEdges, screenToFlowCoordinate} = useVueFlow()
+const { addNodes, addEdges, screenToFlowCoordinate, getNodes, getNodeTypes} = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
 
 function onDrop(event: DragEvent) {
