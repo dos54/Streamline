@@ -27,12 +27,37 @@ onMounted(() => {
   projectStore.load(id)
 })
 
+// ✅ Inject test edge once project is loaded
 watchEffect(() => {
-  console.log('Project loaded?', !!projectStore.current)
-  console.log('Units:', projectStore.units)
-  console.log('Resources:', projectStore.resources)
+  if (projectStore.projectLoaded) {
+    console.log('Project loaded?', !!projectStore.current)
+    console.log('Units:', projectStore.units)
+    console.log('Resources:', projectStore.resources)
+
+    // Replace these IDs with actual node IDs from your JSON
+    const sourceId = 'test-node'
+    const targetId = 'consumer-node'
+    console.log('Available nodes:', projectStore.nodes.map(n => n.id))
+
+
+
+    const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
+    if (!edgeExists) {
+      projectStore.edges.push({
+  id: 'edge-1',
+  source: sourceId,
+  target: targetId,
+  sourceHandle: 'output-0',
+  targetHandle: 'input-0',
+  resourceId: 'water',
+  enabled: true
+})
+      console.log('✅ Injected edge between', sourceId, '→', targetId)
+    }
+  }
 })
 </script>
+
 
 <style scoped>
 .loading {

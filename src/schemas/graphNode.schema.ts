@@ -35,7 +35,7 @@ export const GraphNodeZ = z.object({
     .optional(),
   templateId: z.string().optional(),
 
-  // ✅ Add this block to support resource metadata
+
   data: z
     .object({
       resources: z.array(

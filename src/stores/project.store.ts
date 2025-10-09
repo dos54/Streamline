@@ -5,39 +5,24 @@ import { ProjectZ } from '@/schemas/project.schema'
 import type { Project } from '@/types/project'
 import type { GraphNode } from '@/types/graphNode'
 import type { GraphEdge } from '@/types/graphEdge'
+import { sampleNodes } from '@/data/sampleNodes'
 
-function createEmptyProject(): Project {
-  return {
-    id: 'new-project',
-    name: 'Untitled Project',
-    schemaVersion: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    settings: {
-      baseTimeUnitId: 's',
-      defaultRateDisplay: 'per_s',
-      resourceDefaultUnits: {},
-      balancing: {
-        mode: 'per_cycle',
-        targetTimeUnitId: 's',
-        tolerance: 0.01
-      },
-      ui: {
-        snapToGrid: true,
-        gridSize: 20,
-        minimap: true
-      }
-    },
-    nodes: [],
-    edges: [],
-    resources: [],
-    units: []
-  }
+// ✅ Port types aligned with GraphNodeZ schema
+type InputPort = {
+  resourceId: string
+  unitId: string
+  perCycle: number
 }
 
+type OutputPort = {
+  id: string
+  resourceId: string
+  unitId: string
+  perCycle: number
+}
 
 // 🧠 Normalize legacy node types into SmartNode format
-function normalizeToSmartNode(node: any): GraphNode {
+export function normalizeToSmartNode(node: any): GraphNode {
   const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
     producer: 'producer',
     consumer: 'consumer',
@@ -48,6 +33,19 @@ function normalizeToSmartNode(node: any): GraphNode {
 
   const mode = modeMap[node.type] ?? 'transformer'
 
+  const normalizedOutputs: OutputPort[] = (node.data?.outputs ?? node.outputs ?? []).map((o: any, i: number) => ({
+    id: o.id ?? `output-${i}-${crypto.randomUUID()}`,
+    resourceId: o.resourceId,
+    unitId: o.unitId,
+    perCycle: o.perCycle
+  }))
+
+  const normalizedInputs: InputPort[] = (node.data?.inputs ?? node.inputs ?? []).map((i: any) => ({
+    resourceId: i.resourceId,
+    unitId: i.unitId,
+    perCycle: i.perCycle
+  }))
+
   return {
     id: node.id,
     type: 'smart',
@@ -57,8 +55,8 @@ function normalizeToSmartNode(node: any): GraphNode {
     position: node.position ?? { x: 0, y: 0 },
     count: node.count ?? 1,
     cycleTime: node.data?.cycleTime ?? node.cycleTime ?? 1,
-    inputs: node.data?.inputs ?? node.inputs ?? [],
-    outputs: node.data?.outputs ?? node.outputs ?? [],
+    inputs: normalizedInputs,
+    outputs: normalizedOutputs,
     tags: node.tags ?? [],
     ui: node.ui ?? {},
     templateId: node.templateId ?? undefined,
@@ -67,7 +65,6 @@ function normalizeToSmartNode(node: any): GraphNode {
     }
   }
 }
-
 
 export const useProjectStore = defineStore('project', {
   state: () => ({
@@ -160,5 +157,86 @@ export const useProjectStore = defineStore('project', {
       this.current.units = []
       this.projectLoaded = false
     },
-  },
+
+    injectTestEdge(resourceId: string = 'water') {
+      const input: InputPort = {
+        resourceId,
+        unitId: 'liters',
+        perCycle: 5
+      }
+
+      const output: OutputPort = {
+        id: 'output-0',
+        resourceId,
+        unitId: 'liters',
+        perCycle: 5
+      }
+
+      const testNode: GraphNode = {
+        id: 'test-node',
+        type: 'smart',
+        mode: 'transformer',
+        name: 'Test Node',
+        enabled: true,
+        position: { x: 100, y: 100 },
+        count: 1,
+        cycleTime: 1,
+        inputs: [input],
+        outputs: [output],
+        tags: [],
+        ui: {},
+        templateId: undefined,
+        data: {
+          resources: [{ id: resourceId, name: 'Water', defaultUnitId: 'liters' }]
+        }
+      }
+
+      this.upsertNode(testNode)
+
+      const edgeExists = this.current.edges.some(e => e.id === 'edge-test')
+      if (!edgeExists) {
+        this.upsertEdge({
+          id: 'edge-test',
+          source: 'test-node',
+          target: 'test-node',
+          sourceHandle: 'output-0',
+          targetHandle: 'input-0',
+          resourceId,
+          enabled: true
+        })
+        console.log('🔗 Injected test edge for resource:', resourceId)
+      } else {
+        console.log('⚠️ Edge already exists, skipping injection')
+      }
+    }
+  }
 })
+
+function createEmptyProject(): Project {
+  return {
+    id: 'new-project',
+    name: 'Untitled Project',
+    schemaVersion: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    settings: {
+      baseTimeUnitId: 's',
+      defaultRateDisplay: 'per_s',
+      resourceDefaultUnits: {},
+      balancing: {
+        mode: 'per_cycle',
+        targetTimeUnitId: 's',
+        tolerance: 0.01
+      },
+      ui: {
+        snapToGrid: true,
+        gridSize: 20,
+        minimap: true
+      }
+    },
+    nodes: [],
+    edges: [],
+    resources: [],
+    units: []
+  }
+}

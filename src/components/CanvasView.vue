@@ -8,6 +8,7 @@
         :zoom-on-scroll="true"
         :pan-on-drag="true"
         @pane-ready="handlePaneReady"
+        @connect="onConnect" 
         class="fill"
       >
         <Background variant="dots" :gap="20" :size="1" />
@@ -21,7 +22,7 @@
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node as FlowNode, Edge as FlowEdge } from '@vue-flow/core'
+import type { NodeTypesObject, Node as FlowNode, Edge as FlowEdge, Connection } from '@vue-flow/core'
 import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
 import { useProjectStore } from '@/stores/project.store'
@@ -40,10 +41,39 @@ function handlePaneReady() {
   })
 }
 
+function onConnect(params: Connection) {
+  if (!params.sourceHandle || !params.targetHandle) {
+    console.warn('❌ Missing handle IDs in connection:', params)
+    return
+  }
+
+  const sourceNode = projectStore.nodeById(params.source)
+  const output = sourceNode?.outputs?.find(o => o.id === params.sourceHandle)
+
+  if (!output) {
+    console.warn('⚠️ Could not find matching output for handle:', params.sourceHandle)
+    return
+  }
+
+  projectStore.upsertEdge({
+    id: `edge-${Date.now()}`,
+    source: params.source,
+    sourceHandle: params.sourceHandle,
+    target: params.target,
+    targetHandle: params.targetHandle,
+    resourceId: output.resourceId,
+    enabled: true
+  })
+}
+
+
+import { markRaw } from 'vue'
+import type { ConcreteComponent } from 'vue'
+
 const nodeTypes: NodeTypesObject = {
-  producer: ProducerNode as Component,
-  consumer: ConsumerNode as Component,
-  smart: SmartNode as Component,
+  producer: markRaw(ProducerNode) as Component,
+  consumer: markRaw(ConsumerNode) as Component,
+  smart: markRaw(SmartNode) as Component,
 }
 
 type OutputResource = {
@@ -148,6 +178,7 @@ watchEffect(() => {
   }
 })
 </script>
+
 
 <style scoped>
 .editor-layout {

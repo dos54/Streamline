@@ -56,9 +56,11 @@ type NodeData = {
 const nodeData = ref<NodeData>({ categories: [] })
 
 onMounted(() => {
+  console.log('✅ NodeSidebar mounted')
   nodeData.value = nodeTypesData as NodeData
 })
 </script>
+
 
 <style scoped>
 .node-sidebar {

@@ -1,147 +1,175 @@
 <template>
   <div
-    class="smart-node"
+    class="smart-node w-full max-w-3xl mx-auto p-4 border rounded-md shadow-sm bg-white"
     :style="{ borderColor: isNodeValid ? data.statusColor || '#ccc' : '#f44336' }"
   >
-    <div class="header">Smart</div>
+    <div class="header text-lg font-bold mb-2">Smart</div>
 
     <input
-      class="label-input"
+      class="label-input w-full mb-4 px-3 py-2 border rounded text-sm"
       v-model="editableLabel"
       @blur="updateLabel"
       placeholder="Enter name"
     />
 
-    <button class="direction-toggle" @click="toggleDirection">
+    <button class="direction-toggle mb-4 text-sm text-blue-600" @click="toggleDirection">
       Flow: {{ direction }} {{ directionArrow }}
     </button>
 
-    <div v-if="!isNodeValid" class="node-warning">
+    <div v-if="!isNodeValid" class="node-warning text-red-600 text-sm mb-4">
       ⚠️ This node has invalid inputs or outputs
     </div>
 
-    <div class="timing-section">
-      <h3>Timing</h3>
+    <div class="timing-section mb-6">
+      <h3 class="text-sm font-semibold mb-1">Timing</h3>
       <input
         v-model.number="data.cycleTime"
         type="number"
         placeholder="Cycle Time (s)"
         min="0"
         step="0.1"
+        class="w-full px-3 py-2 border rounded text-sm"
       />
     </div>
 
-    <div class="io-wrapper" :class="direction">
+    <div class="io-wrapper flex flex-col gap-6" :class="direction">
       <!-- Inputs Section -->
-      <div class="inputs-section" v-if="data.inputs?.length >= 0">
-        <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
-        <div class="input-list">
+      <div class="inputs-section">
+        <h3 class="text-sm font-semibold mb-2">{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
+        <div class="input-list flex flex-col gap-4">
           <div
             v-for="(input, index) in data.inputs"
             :key="index"
-            class="input-row"
+            class="input-block p-4 border rounded-md bg-gray-50 relative"
           >
-            <label>Input {{ index + 1 }}</label>
-
             <Handle
               type="target"
-              :position="inputPosition"
               :id="`input-${index}`"
-              class="row-handle"
+              :position="Position.Left"
+              class="absolute top-2 left-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full"
             />
 
-            <select v-model="input.resourceId" @change="syncUnitForInput(input)">
-              <option value="">Select resource</option>
-              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
-                {{ res.name }}
-              </option>
-            </select>
+            <div class="input-label flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold">Input {{ index + 1 }}</label>
+              <span
+                class="status-icon text-lg"
+                :class="balanceMap.get(input.resourceId)?.status"
+                :title="balanceMap.get(input.resourceId)?.message || 'No status found'"
+              >
+                {{ statusIcon(balanceMap.get(input.resourceId)?.status || 'missing') }}
+              </span>
+            </div>
 
-            <select
-              v-model="input.unitId"
-              :class="{ 'auto-filled': wasAutoFilled(input) }"
-              :title="wasAutoFilled(input) ? 'Default unit applied from resource' : ''"
-            >
-              <option value="">Select unit</option>
-              <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
-                {{ unit.label }}
-              </option>
-            </select>
+            <div class="debug-line text-xs text-gray-500 mb-2">
+              Debug: input.resourceId = {{ input.resourceId }},
+              balance status = {{ balanceMap.get(input.resourceId)?.status || 'none' }}
+            </div>
 
-            <input
-              type="number"
-              v-model.number="input.perCycle"
-              min="0"
-              step="0.1"
-              placeholder="perCycle"
-            />
+            <div class="input-fields flex flex-wrap gap-2 mt-2">
+              <select v-model="input.resourceId" @change="syncUnitForInput(input)" class="px-2 py-1 border rounded text-sm">
+                <option value="">Select resource</option>
+                <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+                  {{ res.name }}
+                </option>
+              </select>
 
-            <button @click="removeInput(index)" class="remove-button" title="Remove input">✖️</button>
+              <select
+                v-model="input.unitId"
+                :class="{ 'auto-filled': wasAutoFilled(input) }"
+                :title="wasAutoFilled(input) ? 'Default unit applied from resource' : ''"
+                class="px-2 py-1 border rounded text-sm"
+              >
+                <option value="">Select unit</option>
+                <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
+                  {{ unit.label }}
+                </option>
+              </select>
 
-            <div v-if="!input.resourceId || !input.unitId || input.perCycle <= 0" class="validation-warning">
+              <input
+                type="number"
+                v-model.number="input.perCycle"
+                min="0"
+                step="0.1"
+                placeholder="perCycle"
+                class="px-2 py-1 border rounded text-sm w-24"
+              />
+            </div>
+
+            <button @click="removeInput(index)" class="remove-button text-red-600 text-sm mt-2">✖️ Remove</button>
+
+            <div v-if="!input.resourceId || !input.unitId || input.perCycle <= 0" class="validation-warning text-xs text-red-500 mt-1">
               ⚠️ Resource, unit, and perCycle required
             </div>
           </div>
         </div>
-        <button @click="addInput" class="add-button">+ Add Input</button>
+        <button @click="addInput" class="add-button mt-4 text-sm text-blue-600">+ Add Input</button>
       </div>
 
       <!-- Outputs Section -->
-      <div class="outputs-section" v-if="data.outputs?.length >= 0">
-        <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
-        <div class="output-list">
+      <div class="outputs-section">
+        <h3 class="text-sm font-semibold mb-2">{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
+        <div class="output-list flex flex-col gap-4">
           <div
             v-for="(output, index) in data.outputs"
             :key="output.id || index"
-            class="output-row"
+            class="output-row p-4 border rounded-md bg-gray-50 relative"
           >
-            <label>
-              Output {{ index + 1 }}
-              <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
-              <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
-            </label>
-
             <Handle
               type="source"
-              :position="outputPosition"
               :id="`output-${output.id || index}`"
-              class="row-handle"
+              :position="Position.Right"
+              class="absolute top-2 right-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full"
             />
 
-            <select v-model="output.resourceId" @change="syncUnit(output)">
-              <option value="">Select resource</option>
-              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
-                {{ res.name }}
-              </option>
-            </select>
+            <div class="output-label flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold">Output {{ index + 1 }}</label>
+              <span
+                class="status-icon text-lg"
+                :class="balanceMap.get(output.resourceId)?.status"
+                :title="balanceMap.get(output.resourceId)?.message || 'No status found'"
+              >
+                {{ statusIcon(balanceMap.get(output.resourceId)?.status || 'missing') }}
+              </span>
+            </div>
 
-            <select
-              v-model="output.unitId"
-              :class="{ 'auto-filled': wasAutoFilled(output) }"
-              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''"
-            >
-              <option value="">Select unit</option>
-              <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
-                {{ unit.label }}
-              </option>
-            </select>
+            <div class="input-fields flex flex-wrap gap-2 mt-2">
+              <select v-model="output.resourceId" @change="syncUnit(output)" class="px-2 py-1 border rounded text-sm">
+                <option value="">Select resource</option>
+                <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+                  {{ res.name }}
+                </option>
+              </select>
 
-            <input
-              type="number"
-              v-model.number="output.perCycle"
-              min="0"
-              step="0.1"
-              placeholder="perCycle"
-            />
+              <select
+                v-model="output.unitId"
+                :class="{ 'auto-filled': wasAutoFilled(output) }"
+                :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''"
+                class="px-2 py-1 border rounded text-sm"
+              >
+                <option value="">Select unit</option>
+                <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
+                  {{ unit.label }}
+                </option>
+              </select>
 
-            <button @click="removeOutput(index)" class="remove-button" title="Remove output">✖️</button>
+              <input
+                type="number"
+                v-model.number="output.perCycle"
+                min="0"
+                step="0.1"
+                placeholder="perCycle"
+                class="px-2 py-1 border rounded text-sm w-24"
+              />
+            </div>
 
-            <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
+            <button @click="removeOutput(index)" class="remove-button text-red-600 text-sm mt-2">✖️ Remove</button>
+
+            <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning text-xs text-red-500 mt-1">
               ⚠️ Resource and perCycle required
             </div>
           </div>
         </div>
-        <button @click="addOutput" class="add-button">+ Add Output</button>
+        <button @click="addOutput" class="add-button mt-4 text-sm text-blue-600">+ Add Output</button>
       </div>
     </div>
   </div>
@@ -154,11 +182,21 @@
 
 
 
+
+
+
+
+
+
+
+
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
-import { Position } from '@vue-flow/core'
+import { ref, computed, watch, reactive, watchEffect, onMounted } from 'vue'
 import type { HandleType } from '@vue-flow/core'
 import { useProjectStore } from '@/stores/project.store'
+import { validateResourceFlow } from '@/utils/flowValidation'
+import { Handle, Position } from '@vue-flow/core'
+import { toRaw } from 'vue'
 
 // Props
 type SmartNodeData = {
@@ -180,7 +218,54 @@ const props = defineProps<{
 const nodeId = props.id
 const projectStore = useProjectStore()
 
-// Wrap data in reactive and ensure inputs/outputs are always arrays
+// Inject test edge on mount
+onMounted(() => {
+  projectStore.injectTestEdge('water')
+})
+
+// 🔍 Flow validation results
+const flowResults = computed(() =>
+  validateResourceFlow(projectStore.nodes, projectStore.edges)
+)
+
+//Map of resourceId → badge status + message
+const balanceMap = computed(() => {
+  const map = new Map<string, { status: string; message: string }>()
+  for (const result of flowResults.value) {
+    if (result.target === props.id) {
+      map.set(result.resourceId, {
+        status: result.balanceStatus,
+        message: result.message
+      })
+    }
+  }
+  return map
+})
+
+// Debug logs
+watchEffect(() => {
+  console.log('🔍 flowResults:', flowResults.value)
+  console.log('🧠 balanceMap contents:', Array.from(balanceMap.value.entries()))
+  console.log('🧩 Edges:', toRaw(projectStore.edges))
+  for (const node of projectStore.nodes) {
+    console.log('🧩 Validating node:', node.id)
+  }
+})
+
+// Badge icon helper
+function statusIcon(status?: string): string {
+  return {
+    exact: '✅',
+    over: '🔄',
+    under: '⚠️',
+    missing: '❌'
+  }[status ?? 'missing'] ?? '❌'
+}
+
+// Icon test
+console.log('🔍 Icon test:', statusIcon('exact'))
+
+// Reactive node data
 const data = reactive<SmartNodeData>({
   label: props.data.label ?? '',
   direction: props.data.direction ?? 'ltr',
@@ -287,21 +372,21 @@ const isNodeValid = computed(() => {
   return allInputsValid && allOutputsValid
 })
 
-// 🔄 Sync changes to store
+// Sync changes to store (ensures flowResults updates)
 watch(
   () => ({
     label: data.label,
     cycleTime: data.cycleTime,
     direction: data.direction,
-    inputs: data.inputs,
-    outputs: data.outputs
+    inputs: data.inputs.map(i => ({ ...i })),
+    outputs: data.outputs.map(o => ({ ...o }))
   }),
   (newVal) => {
     const nodeIndex = projectStore.nodes.findIndex(n => n.id === nodeId)
     if (nodeIndex !== -1) {
       projectStore.nodes[nodeIndex].data = {
         ...projectStore.nodes[nodeIndex].data,
-        ...newVal
+        ...toRaw(newVal)
       }
     }
   },
@@ -316,18 +401,25 @@ watch(
 
 
 
+
+
+
+
+
+
 <style scoped>
 .smart-node {
   background-color: #f0fdf4;
   border: 2px solid #a3d9a5;
   border-radius: 10px;
   padding: 1rem;
-  width: 480px;
+  max-width: 100%;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-family: 'Segoe UI', sans-serif;
   transition: border-color 0.3s ease;
+  box-sizing: border-box;
 }
-
 
 .header {
   font-weight: 600;
@@ -346,48 +438,43 @@ watch(
   margin-bottom: 0.75rem;
 }
 
-
 .direction-toggle {
   display: block;
   margin: 0 auto 1rem;
-  background: #e0f2f1;
-  border: 1px solid #80cbc4;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  border-radius: 6px;
-  color: #00695c;
-  transition: background 0.2s ease;
-}
-
-.direction-toggle {
-  margin-bottom: 12px;
   background-color: #e0e0e0;
   border: none;
   padding: 6px 12px;
   cursor: pointer;
   font-size: 0.9rem;
+  border-radius: 6px;
+  color: #00695c;
+  transition: background 0.2s ease;
 }
-
 
 .inputs-section,
 .outputs-section {
   margin-top: 1rem;
+  flex: 1;
+  background-color: #f9f9f9;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #ddd;
 }
 
 .input-list,
 .output-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .input-row,
 .output-row {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   position: relative;
-  flex-direction: column;
-  gap: 0.3rem;
 }
 
 .add-button {
@@ -413,14 +500,6 @@ watch(
 .timing-section {
   margin-top: 1rem;
   background-color: #fffbe6;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ffe58f;
-}
-
-.timing-section {
-  margin-top: 1rem;
-  background-color: #fffbe6;
   padding: 0.75rem;
   border-radius: 6px;
   border: 1px solid #ffe58f;
@@ -431,7 +510,6 @@ watch(
   font-size: 0.9rem;
   color: #555;
 }
-
 
 .node-warning {
   background-color: #fff3cd;
@@ -444,39 +522,34 @@ watch(
 
 .io-wrapper {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-top: 1rem;
 }
 
 .io-wrapper.ltr {
-  flex-direction: row;
+  flex-direction: column;
 }
 
 .io-wrapper.rtl {
-  flex-direction: row-reverse;
-}
-
-.inputs-section,
-.outputs-section {
-  flex: 1;
-  background-color: #f9f9f9;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.input-row,
-.output-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-direction: column;
 }
 
 .status-icon {
-  margin-left: 0.5rem;
-  font-size: 1rem;
+  font-size: 1.2em;
+  margin-left: 0.5em;
+  display: inline-block;
+  vertical-align: middle;
 }
+
+.status-icon:hover {
+  transform: scale(1.2);
+}
+
+.status-icon.exact   { color: #2e7d32; }  /* green */
+.status-icon.over    { color: #0277bd; }  /* blue */
+.status-icon.under   { color: #f9a825; }  /* amber */
+.status-icon.missing { color: #c62828; }  /* red */
 
 select.auto-filled {
   background-color: #e8f5e9;
@@ -487,7 +560,7 @@ select.auto-filled {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  left: -12px; /* or right: -12px for RTL */
+  left: -12px;
   width: 12px;
   height: 12px;
   background-color: #4caf50;
@@ -512,5 +585,30 @@ select.auto-filled {
   color: #d32f2f;
 }
 
+.input-block,
+.output-row {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+}
 
+.input-label,
+.output-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.input-fields {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+}
 </style>

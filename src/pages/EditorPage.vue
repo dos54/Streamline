@@ -4,11 +4,21 @@ import SettingsModal from '@/components/modals/SettingsModal.vue'
 import JsonImport from '@/components/JsonImport.vue'
 import { useHead } from '@unhead/vue'
 import { useProjectStore } from '@/stores/project.store'
+import { onMounted } from 'vue'
+import { sampleNodes } from '@/data/sampleNodes'
+import { normalizeToSmartNode } from '@/stores/project.store'
+
+
 
 
 useHead({ title: 'Editor' })
 
-const projectStore = useProjectStore()
+const projectStore = useProjectStore() 
+
+onMounted(() => {
+  projectStore.injectNodes(sampleNodes.map(normalizeToSmartNode))
+ 
+})
 
 function handleInject(nodes: any[]) {
   projectStore.injectNodes(nodes)
@@ -18,6 +28,7 @@ function handleClear() {
   projectStore.clearNodes()
 }
 </script>
+
 
 <template>
   <div class="editor-layout">
