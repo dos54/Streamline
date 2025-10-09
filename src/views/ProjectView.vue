@@ -18,54 +18,81 @@ import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/project.store'
 import type { GraphNode } from '@/types/graphNode'
 
+type ResourceFlow = {
+  resourceId: string
+  unitId: string
+  perCycle: number
+}
+
 const route = useRoute()
 const projectStore = useProjectStore()
 
-const { addNodes, addEdges, screenToFlowCoordinate, getNodeTypes, getNodes} = useVueFlow()
+const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
 
 function onDrop(event: DragEvent) {
   const newNode = onDropHandler(event, screenToFlowCoordinate)
-  if (newNode) {
-    // convert to GraphNode type before upserting
-    const newGraphNode = convertNodeToGraphNode(newNode) 
+  console.log('📦 Dropped node:', newNode)
+  console.log('🧠 Injected SmartNode resources:', newNode?.data?.resources)
 
+  if (newNode) {
+    const newGraphNode = convertNodeToGraphNode(newNode)
     projectStore.upsertNode(newGraphNode)
 
+    // ✅ Trigger validation after injection
+    projectStore.validateResourceFlow()
   }
 }
 
 function convertNodeToGraphNode(node: Node): GraphNode {
   return {
     id: node.id,
-    type: node.type === 'consumer' ? 'sink' : 'source',
-    name: node.data?.label, // use label as name
-    enabled: false, // false by default
+    type: "smart",
+
+
+    name: String(node.data?.label ?? "Unnamed Node"),
+    enabled: false,
     position: {
       x: node.position.x,
       y: node.position.y,
     },
-    count: 0, // init as zero 
-    cycleTime: node.type === 'producer' ? node?.data?.cycleTime : 0,
-    inputs: [{
-      id: node.data?.inputs[0]?.resourceId ?? 'input-1',
-      perCycle: node?.data?.inputs[0]?.perCycle ?? 1,
-      consumptionChance: node.type === 'consumer' ? 1 : 0, // no chance for producer
-      label: node.data?.label,
-      unitId: node.data?.inputs[0]?.resourceId,
-    }],
-    outputs: [{
-      id: 'output-1', perCycle: node?.data?.inputs[0]?.perCycle ?? 1, consumptionChance: node.type === 'consumer' ? 1 : 0,
-    }]
-  } 
+    count: 0,
+    cycleTime: typeof node.data?.cycleTime === 'number' ? node.data.cycleTime : 0,
+    mode: typeof node.type === 'string' &&
+      ['producer', 'consumer', 'transformer', 'smart'].includes(node.type)
+      ? (node.type === 'smart' ? 'transformer' : node.type) as 'producer' | 'consumer' | 'transformer'
+      : 'producer',
+    inputs: Array.isArray(node.data?.inputs)
+      ? node.data.inputs.map((input: ResourceFlow) => ({
+          resourceId: String(input.resourceId),
+          unitId: String(input.unitId),
+          perCycle: Number(input.perCycle)
+        }))
+      : [],
+    outputs: Array.isArray(node.data?.outputs)
+      ? node.data.outputs.map((output: ResourceFlow) => ({
+          id: String(output.resourceId),
+          resourceId: String(output.resourceId),
+          unitId: String(output.unitId),
+          perCycle: Number(output.perCycle)
+        }))
+      : []
+  }
 }
 
 function onConnect(params: Connection) {
   projectStore.upsertEdge({
-    ...params, source: params.source, target: params.target, sourceHandle: '', targetHandle: '',
+    ...params,
+    source: params.source,
+    target: params.target,
+    sourceHandle: '',
+    targetHandle: '',
     id: '',
     enabled: false
   })
+
+  // ✅ Trigger validation after edge creation
+  projectStore.validateResourceFlow()
 }
 
 onMounted(() => {
@@ -78,37 +105,35 @@ onMounted(() => {
   projectStore.load(id)
 })
 
-// ✅ Inject test edge once project is loaded
 watchEffect(() => {
   if (projectStore.projectLoaded) {
     console.log('Project loaded?', !!projectStore.current)
     console.log('Units:', projectStore.units)
     console.log('Resources:', projectStore.resources)
 
-    // Replace these IDs with actual node IDs from your JSON
     const sourceId = 'test-node'
     const targetId = 'consumer-node'
     console.log('Available nodes:', projectStore.nodes.map(n => n.id))
 
-
-
     const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
     if (!edgeExists) {
       projectStore.edges.push({
-  id: 'edge-1',
-  source: sourceId,
-  target: targetId,
-  sourceHandle: 'output-0',
-  targetHandle: 'input-0',
-  resourceId: 'water',
-  enabled: true
-})
+        id: 'edge-1',
+        source: sourceId,
+        target: targetId,
+        sourceHandle: 'output-0',
+        targetHandle: 'input-0',
+        resourceId: 'water',
+        enabled: true
+      })
       console.log('✅ Injected edge between', sourceId, '→', targetId)
+
+      // ✅ Trigger validation after edge injection
+      projectStore.validateResourceFlow()
     }
   }
 })
 </script>
-
 
 <style scoped>
 .loading {

@@ -35,9 +35,10 @@
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 
+// ✅ Expanded type to include 'smart', 'producer', 'consumer'
 type NodeType = {
   id: string
-  type: 'machine' | 'source' | 'sink'
+  type: 'machine' | 'source' | 'sink' | 'smart' | 'producer' | 'consumer'
   name: string
   description: string
   icon: string
@@ -69,7 +70,6 @@ onMounted(() => {
   nodeData.value = nodeTypesData as NodeData
 })
 </script>
-
 
 <style scoped>
 .node-sidebar {

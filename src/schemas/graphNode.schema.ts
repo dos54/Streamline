@@ -36,15 +36,16 @@ export const GraphNodeZ = z.object({
   templateId: z.string().optional(),
 
 
-  data: z
-    .object({
-      resources: z.array(
-        z.object({
-          id: z.string().min(1),
-          name: z.string().min(1),
-          defaultUnitId: z.string().min(1)
-        })
-      ).optional()
-    })
-    .optional()
+  data: z.object({
+  resources: z
+    .array(z.object({
+      id: z.string(),
+      name: z.string(),
+      defaultUnitId: z.string()
+    }))
+    .optional(),
+  statusMessages: z.array(z.string()).optional(),
+  statusColor: z.string().optional()
+}).optional()
+
 })

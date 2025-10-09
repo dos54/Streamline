@@ -1,24 +1,23 @@
 <script setup lang="ts">
-<<<<<<< HEAD
+import { ref, onMounted } from 'vue'
+import { useVueFlow } from '@vue-flow/core'
+import type { Node, Edge } from '@vue-flow/core'
 import CanvasView from '@/components/CanvasView.vue'
+import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
 import SettingsModal from '@/components/modals/SettingsModal.vue'
 import JsonImport from '@/components/JsonImport.vue'
 import { useHead } from '@unhead/vue'
+import useDragAndDrop from '@/useDnD'
 import { useProjectStore } from '@/stores/project.store'
-import { onMounted } from 'vue'
 import { sampleNodes } from '@/data/sampleNodes'
 import { normalizeToSmartNode } from '@/stores/project.store'
 
-
-
-
 useHead({ title: 'Editor' })
 
-const projectStore = useProjectStore() 
+const projectStore = useProjectStore()
 
 onMounted(() => {
   projectStore.injectNodes(sampleNodes.map(normalizeToSmartNode))
- 
 })
 
 function handleInject(nodes: any[]) {
@@ -28,18 +27,8 @@ function handleInject(nodes: any[]) {
 function handleClear() {
   projectStore.clearNodes()
 }
-=======
-import {ref} from 'vue'
-import { useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge } from '@vue-flow/core'
-import CanvasView from '@/components/CanvasView.vue';
-import NodeSidebar from '@/components/sidebar/NodeSidebar.vue';
-import SettingsModal from '@/components/modals/SettingsModal.vue';
-import { useHead } from '@unhead/vue';
-import useDragAndDrop from '@/useDnD';
-useHead({ title: 'Editor' })
 
-const { addNodes, addEdges, screenToFlowCoordinate, getNodes, getNodeTypes} = useVueFlow()
+const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
 
 function onDrop(event: DragEvent) {
@@ -74,12 +63,10 @@ const nodes = ref<Node[]>([
         { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
         { resourceId: 'steel', unitId: 'kg', perCycle: 2 }
       ],
-outputs: [
-  { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
-  { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
-]
-
-,
+      outputs: [
+        { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
+        { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
+      ],
       resources: [
         { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
         { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
@@ -102,24 +89,17 @@ outputs: [
     }
   }
 ])
-
-
->>>>>>> origin/main
 </script>
-
 
 <template>
   <div class="editor-layout" @dragover="onDragOver" @drop="onDrop">
     <NodeSidebar />
-<<<<<<< HEAD
-    <CanvasView />
+    <CanvasView :nodes="nodes" :edges="edges" @connect="addEdges" />
     <JsonImport @inject="handleInject" @clear="handleClear" />
     <SettingsModal />
-=======
-    <CanvasView :nodes="nodes" :edges="edges" @connect="addEdges"/>
->>>>>>> origin/main
   </div>
 </template>
+
 <style scoped>
 .editor-layout {
   display: flex;
@@ -127,4 +107,3 @@ outputs: [
   height: 100%;
 }
 </style>
-

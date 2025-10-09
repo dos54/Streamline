@@ -68,9 +68,22 @@ export function normalizeToSmartNode(node: any): GraphNode {
 
 export const useProjectStore = defineStore('project', {
   state: () => ({
-    current: createEmptyProject(),
-    projectLoaded: false
-  }),
+  current: createEmptyProject(),
+  projectLoaded: false,
+  flowResults: [] as {
+    target: string
+    resourceId: string
+    valid: boolean
+    message: string
+  }[],
+  balanceMap: [] as {
+    nodeId: string
+    resourceId: string
+    supplied: number
+    required: number
+  }[]
+}),
+
 
   getters: {
     nodes: (s) => s.current.nodes,
@@ -208,6 +221,54 @@ export const useProjectStore = defineStore('project', {
       } else {
         console.log('⚠️ Edge already exists, skipping injection')
       }
+    },
+
+    validateResourceFlow() {
+      const results = []
+      const balanceMap = []
+
+      for (const node of this.current.nodes) {
+        if (node.mode === 'consumer' || node.mode === 'transformer') {
+          const inputs = node.inputs ?? []
+          const messages = []
+
+          for (const input of inputs) {
+            const matchingEdges = this.current.edges.filter(e =>
+              e.target === node.id &&
+              e.resourceId === input.resourceId &&
+              e.enabled
+            )
+
+            const totalSupplied = matchingEdges.length * input.perCycle
+            const valid = totalSupplied >= input.perCycle
+
+            messages.push(valid
+              ? `✅ ${input.resourceId} is sufficiently supplied`
+              : `⚠️ ${input.resourceId} is under-supplied`)
+
+            results.push({
+              target: node.id,
+              resourceId: input.resourceId,
+              valid,
+              message: messages[messages.length - 1]
+            })
+
+            balanceMap.push({
+              nodeId: node.id,
+              resourceId: input.resourceId,
+              supplied: totalSupplied,
+              required: input.perCycle
+            })
+          }
+
+          if (!node.data) node.data = {}
+          node.data.statusMessages = messages
+          node.data.statusColor = messages.every(m => m.startsWith('✅')) ? '#4caf50' : '#f44336'
+        }
+      }
+
+      this.flowResults = results
+      this.balanceMap = balanceMap
     }
   }
 })
@@ -228,7 +289,7 @@ function createEmptyProject(): Project {
         targetTimeUnitId: 's',
         tolerance: 0.01
       },
-      ui: {
+            ui: {
         snapToGrid: true,
         gridSize: 20,
         minimap: true
@@ -240,3 +301,4 @@ function createEmptyProject(): Project {
     units: []
   }
 }
+
