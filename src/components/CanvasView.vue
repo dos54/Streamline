@@ -2,18 +2,17 @@
   <div class="editor-layout">
     <div class="canvas-wrapper">
       <VueFlow
-        v-model:nodes="nodes"
-        v-model:edges="edges"
+        :nodes="nodes"
+        :edges="edges"
         :node-types="nodeTypes"
         :zoom-on-scroll="true"
         :pan-on-drag="true"
         @pane-ready="handlePaneReady"
-        @connect="onConnect" 
+        @connect="onConnect"
         class="fill"
       >
         <Background variant="dots" :gap="20" :size="1" />
       </VueFlow>
-
       <CanvasOverlay />
     </div>
   </div>
@@ -65,7 +64,6 @@ function onConnect(params: Connection) {
     enabled: true
   })
 }
-
 
 import { markRaw } from 'vue'
 import type { ConcreteComponent } from 'vue'
@@ -178,7 +176,6 @@ watchEffect(() => {
   }
 })
 </script>
-
 
 <style scoped>
 .editor-layout {
