@@ -1,31 +1,31 @@
 <template>
   <div class="editor-layout">
-    <div class="canvas-wrapper">
-      <VueFlow
-        :nodes="nodes"
-        :edges="edges"
-        :node-types="nodeTypes"
-        :zoom-on-scroll="true"
-        :pan-on-drag="true"
-        @pane-ready="handlePaneReady"
-        @connect="onConnect"
-        @drop="event => handleDrop(event)"
-        @dragover="onDragOver"
-
-        class="fill"
+     class="canvas-wrapper"
+  @drop="handleDrop"
+  @dragover.prevent
+>
+  <VueFlow
+    :nodes="nodes"
+    :edges="edges"
+    :node-types="nodeTypes"
+    :zoom-on-scroll="true"
+    :pan-on-drag="true"
+    @pane-ready="handlePaneReady"
+    @connect="onConnect"
+    class="fill"
       >
         <Background variant="dots" :gap="20" :size="1" />
       </VueFlow>
       <CanvasOverlay />
     </div>
-  </div>
+
 </template>
 
 <script setup lang="ts">
-import { computed, watchEffect } from 'vue'
+import { computed, watchEffect, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import type { NodeTypesObject, Node as FlowNode, Edge as FlowEdge, Connection } from '@vue-flow/core'
-import type { Component } from 'vue'
+import type { Component, ConcreteComponent } from 'vue'
 import { Background } from '@vue-flow/background'
 import { useProjectStore } from '@/stores/project.store'
 
@@ -34,25 +34,27 @@ import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
 import useDragAndDrop from '@/useDnD'
-const { onDrop, onDragOver } = useDragAndDrop()
-
-function handleDrop(event: DragEvent) {
-  const newNode = onDrop(event, screenToFlowCoordinate)
-  if (newNode) {
-    const graphNode = convertNodeToGraphNode(newNode)
-    projectStore.upsertNode(graphNode)
-    projectStore.validateResourceFlow()
-    console.log('📦 Injected node:', graphNode)
-  }
-}
-
-
-
-
+import { convertNodeToGraphNode } from '@/utils/graphUtils'
 
 const projectStore = useProjectStore()
 const { fitView, screenToFlowCoordinate } = useVueFlow()
+const { onDrop, onDragOver } = useDragAndDrop()
 
+function handleDrop(event: DragEvent) {
+  const droppedNode = onDrop(event, screenToFlowCoordinate)
+
+  if (!droppedNode || !droppedNode.type || !droppedNode.data) {
+    console.warn('⚠️ Invalid node dropped:', droppedNode)
+    return
+  }
+
+  const graphNode = convertNodeToGraphNode(droppedNode)
+
+  projectStore.upsertNode(graphNode)
+  projectStore.validateResourceFlow()
+
+  console.log('📦 Injected node:', graphNode)
+}
 
 function handlePaneReady() {
   requestAnimationFrame(() => {
@@ -84,9 +86,6 @@ function onConnect(params: Connection) {
     enabled: true
   })
 }
-
-import { markRaw } from 'vue'
-import type { ConcreteComponent } from 'vue'
 
 const nodeTypes: NodeTypesObject = {
   producer: markRaw(ProducerNode) as Component,
@@ -161,10 +160,65 @@ const validationResults = computed(() =>
   validateResourceFlow(nodes.value, edges.value)
 )
 
+const balanceMap = computed(() => projectStore.balanceMap)
+
+const balanceStatusMap = computed(() => {
+  const map: Record<string, string> = {}
+
+  for (const node of nodes.value) {
+    if (node.type !== 'smart') continue
+
+    const entries = balanceMap.value.filter(b => b.nodeId === node.id)
+
+    if (entries.length === 0) {
+      map[node.id] = 'missing'
+      continue
+    }
+
+    let totalSupplied = 0
+    let totalRequired = 0
+
+    for (const entry of entries) {
+      totalSupplied += entry.supplied
+      totalRequired += entry.required
+    }
+
+    if (totalSupplied === totalRequired) map[node.id] = 'exact'
+    else if (totalSupplied > totalRequired) map[node.id] = 'over'
+    else if (totalSupplied < totalRequired) map[node.id] = 'under'
+    else map[node.id] = 'valid'
+  }
+
+  return map
+})
+
+// Optional: expose these for SmartNode.vue to use
+function getUnitsForResource(resourceId: string): string[] {
+  const resource = projectStore.resources.find(r => r.id === resourceId)
+  return resource ? [resource.defaultUnitId ?? ''] : []
+}
+
+function handleResourceChange(nodeId: string, inputIndex: number) {
+  const node = projectStore.nodeById(nodeId)
+  if (!node || !node.data?.inputs) return
+
+  const selectedResourceId = node.data.inputs[inputIndex].resourceId
+  const resource = node.data.resources?.find(r => r.id === selectedResourceId)
+
+  if (resource) {
+    node.data.inputs[inputIndex].unitId = resource.defaultUnitId ?? ''
+  }
+}
+
 watchEffect(() => {
   const results = validationResults.value
 
   for (const node of nodes.value) {
+    if (node.type === 'smart') {
+      const status = balanceStatusMap.value[node.id]
+      console.log(`🔍 SmartNode ${node.id} balance status:`, status)
+    }
+
     if (node.type === 'consumer') {
       const nodeResults = results.filter(r => r.target === node.id)
       const messages = nodeResults.map(r => r.message)
@@ -196,6 +250,7 @@ watchEffect(() => {
   }
 })
 </script>
+
 
 <style scoped>
 .editor-layout {
