@@ -170,13 +170,13 @@ const props = defineProps<{
 
 const data = props.data
 
-const editableLabel = ref(data.label)
+const editableLabel = ref(data?.label)
 function updateLabel() {
   data.label = editableLabel.value
 }
 
 // 🔁 Direction toggle logic
-const direction = ref(data.direction ?? 'ltr')
+const direction = ref(data?.direction ?? 'ltr')
 const directionArrow = computed(() =>
   direction.value === 'rtl' ? '←' : '→'
 )
@@ -218,8 +218,8 @@ function isValidResource(r: { resourceId: string; perCycle: number }) {
 }
 
 const isNodeValid = computed(() => {
-  const inputsValid = data.inputs.every(isValidResource)
-  const outputsValid = data.outputs.every(isValidResource)
+  const inputsValid = data?.inputs?.every(isValidResource)
+  const outputsValid = data?.outputs?.every(isValidResource)
   return inputsValid && outputsValid
 })
 
