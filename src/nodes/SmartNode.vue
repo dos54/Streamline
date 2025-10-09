@@ -1,76 +1,60 @@
 <template>
   <div
-    class="smart-node w-full max-w-3xl mx-auto p-4 border rounded-md shadow-sm bg-white"
-    :style="{ borderColor: isNodeValid ? '#ccc' : '#f44336' }"
+    class="producer-node"
+    :style="{ borderColor: isNodeValid ? props.data.statusColor || '#ccc' : '#f44336' }"
   >
-    <div class="header text-lg font-bold mb-2">Smart</div>
+    <div class="header">Smart Node</div>
 
     <input
-      class="label-input w-full mb-4 px-3 py-2 border rounded text-sm"
+      class="label-input"
       v-model="editableLabel"
       @blur="updateLabel"
       placeholder="Enter name"
     />
 
-    <button class="direction-toggle mb-4 text-sm text-blue-600" @click="toggleDirection">
+    <button class="direction-toggle" @click="toggleDirection">
       Flow: {{ direction }} {{ directionArrow }}
     </button>
 
-    <div v-if="!isNodeValid" class="node-warning text-red-600 text-sm mb-4">
+    <div v-if="!isNodeValid" class="node-warning">
       ⚠️ This node has invalid inputs or outputs
     </div>
 
-    <div class="timing-section mb-6">
-      <h3 class="text-sm font-semibold mb-1">Timing</h3>
+    <div class="timing-section">
+      <h3>Timing</h3>
       <input
-        v-model.number="data.cycleTime"
+        v-model.number="props.data.cycleTime"
         type="number"
         placeholder="Cycle Time (s)"
         min="0"
         step="0.1"
-        class="w-full px-3 py-2 border rounded text-sm"
       />
     </div>
 
-    <div class="io-wrapper flex flex-col gap-6" :class="direction">
-      <!-- Inputs -->
-      <div class="inputs-section">
-        <h3 class="text-sm font-semibold mb-2">{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
-        <div class="input-list flex flex-col gap-4">
+    <div class="io-wrapper" :class="direction">
+      <div class="inputs-section" v-if="Array.isArray(props.data.inputs)">
+        <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
+        <div class="input-list">
           <div
-            v-for="(input, index) in data.inputs"
+            v-for="(input, index) in props.data.inputs"
             :key="index"
-            class="input-block p-4 border rounded-md bg-gray-50 relative"
+            class="input-row"
+            style="position: relative"
           >
+            <label>Input {{ index + 1 }}</label>
+
             <Handle
               type="target"
+              :position="inputPosition"
               :id="`input-${index}`"
-              :position="Position.Left"
-              class="absolute top-2 left-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full"
+              class="row-handle"
             />
 
-            <div class="input-label flex items-center justify-between mb-1">
-              <label class="text-sm font-semibold">Input {{ index + 1 }}</label>
-            </div>
-
-            <select v-model="input.id" class="px-2 py-1 border rounded text-sm">
+            <select v-model="input.resourceId">
               <option value="">Select resource</option>
-              <!-- Placeholder options -->
-              <option value="water">Water</option>
-              <option value="energy">Energy</option>
-              <option value="fuel">Fuel</option>
-              <option value="oxygen">Oxygen</option>
-
-            </select>
-
-            <select v-model="input.unitId" class="px-2 py-1 border rounded text-sm">
-              <option value="">Select unit</option>
-              <!-- Placeholder options -->
-              <option value="liter">Liter</option>
-              <option value="kWh">kWh</option>
-              <option value="gallon">Gallon</option>
-              <option value="mole">Mole</option>
-
+              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+                {{ res.name }}
+              </option>
             </select>
 
             <input
@@ -79,43 +63,54 @@
               min="0"
               step="0.1"
               placeholder="perCycle"
-              class="px-2 py-1 border rounded text-sm w-24"
             />
+
+            <div v-if="!input.resourceId || input.perCycle <= 0" class="validation-warning">
+              ⚠️ Resource and perCycle required
+            </div>
           </div>
         </div>
-        <button @click="addInput" class="add-button mt-4 text-sm text-blue-600">+ Add Input</button>
+        <button @click="addInput" class="add-button">+ Add Input</button>
       </div>
 
-      <!-- Outputs -->
-      <div class="outputs-section">
-        <h3 class="text-sm font-semibold mb-2">{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
-        <div class="output-list flex flex-col gap-4">
+      <div class="outputs-section" v-if="Array.isArray(props.data.outputs)">
+        <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
+        <div class="output-list">
           <div
-            v-for="(output, index) in data.outputs"
-            :key="index"
-            class="output-row p-4 border rounded-md bg-gray-50 relative"
+            v-for="(output, index) in props.data.outputs"
+            :key="output.id"
+            class="output-row"
+            style="position: relative"
           >
+            <label>
+              Output {{ index + 1 }}
+              <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
+              <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
+            </label>
+
             <Handle
               type="source"
-              :id="`output-${index}`"
-              :position="Position.Right"
-              class="absolute top-2 right-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full"
+              :position="outputPosition"
+              :id="`output-${output.id}`"
+              class="row-handle"
             />
 
-            <div class="output-label flex items-center justify-between mb-1">
-              <label class="text-sm font-semibold">Output {{ index + 1 }}</label>
-            </div>
-
-            <select v-model="output.id" class="px-2 py-1 border rounded text-sm">
+            <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
-              <option value="res1">Resource 1</option>
-              <option value="res2">Resource 2</option>
+              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+                {{ res.name }}
+              </option>
             </select>
 
-            <select v-model="output.unitId" class="px-2 py-1 border rounded text-sm">
+            <select
+              v-model="output.unitId"
+              :class="{ 'auto-filled': wasAutoFilled(output) }"
+              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''"
+            >
               <option value="">Select unit</option>
-              <option value="unit1">Unit 1</option>
-              <option value="unit2">Unit 2</option>
+              <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
+                {{ unit.label }}
+              </option>
             </select>
 
             <input
@@ -124,11 +119,13 @@
               min="0"
               step="0.1"
               placeholder="perCycle"
-              class="px-2 py-1 border rounded text-sm w-24"
             />
+            <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
+              ⚠️ Resource and perCycle required
+            </div>
           </div>
         </div>
-        <button @click="addOutput" class="add-button mt-4 text-sm text-blue-600">+ Add Output</button>
+        <button @click="addOutput" class="add-button">+ Add Output</button>
       </div>
     </div>
   </div>
@@ -151,54 +148,108 @@
 
 
 
+
+
+
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Position, Handle } from '@vue-flow/core'
-import type { Resource } from '@/types/resource'
+import { ref, computed } from 'vue'
+import { Handle, Position } from '@vue-flow/core'
+import { useProjectStore } from '../stores/project.store'
+import type { Unit } from '@/types/project'
 
+const project = useProjectStore()
 
-const props = defineProps<{ data: any; project: { resources?: Resource[] } }>()
+const props = defineProps<{
+  data: {
+    label: string
+    direction?: 'ltr' | 'rtl'
+    cycleTime: number
+    inputs: {
+      resourceId: string
+      perCycle: number
+    }[]
+    outputs: {
+      id: string
+      resourceId: string
+      unitId: string
+      perCycle: number
+    }[]
+    statusColor?: string
+  }
+}>()
+
+const editableLabel = ref(props.data.label)
+function updateLabel() {
+  props.data.label = editableLabel.value
+}
+
+const direction = ref(props.data.direction ?? 'ltr')
+const directionArrow = computed(() => direction.value === 'rtl' ? '←' : '→')
+const inputPosition = computed(() => direction.value === 'rtl' ? Position.Right : Position.Left)
+const outputPosition = computed(() => direction.value === 'rtl' ? Position.Left : Position.Right)
+
+function toggleDirection() {
+  direction.value = direction.value === 'ltr' ? 'rtl' : 'ltr'
+  props.data.direction = direction.value
+}
+
+function addInput() {
+  props.data.inputs.push({ resourceId: '', perCycle: 0 })
+}
+
+function addOutput() {
+  props.data.outputs.push({
+    id: crypto.randomUUID(),
+    resourceId: '',
+    unitId: '',
+    perCycle: 0
+  })
+}
+
+function isValidResource(r: { resourceId: string; perCycle: number }) {
+  return r.resourceId !== '' && r.perCycle > 0
+}
+
+const isNodeValid = computed(() => {
+  const inputsValid = props.data.inputs.every(isValidResource)
+  const outputsValid = props.data.outputs.every(isValidResource)
+  return inputsValid && outputsValid
+})
+
+function validateOutput(output: typeof props.data.outputs[number]) {
+  if (!output.resourceId || output.perCycle <= 0) return 'invalid'
+  return 'valid'
+}
+
+const outputStatus = computed(() =>
+  props.data.outputs.map(validateOutput)
+)
+
+function syncUnit(output: typeof props.data.outputs[number]) {
+  const resource = project.resources?.find((r) => r.id === output.resourceId)
+  if (resource && !output.unitId) {
+    output.unitId = resource.defaultUnitId ?? ''
+  }
+}
+
+function wasAutoFilled(output: typeof props.data.outputs[number]) {
+  const resource = project.resources?.find((r) => r.id === output.resourceId)
+  return resource?.defaultUnitId === output.unitId
+}
 
 const resourceOptions = computed(() =>
-  (props.project.resources ?? []).map((r) => ({
+  (project.resources ?? []).map((r) => ({
     id: r.id,
     name: r.name,
   }))
 )
 
-const direction = computed(() => props.data?.direction ?? 'ltr')
-const directionArrow = computed(() => direction.value === 'rtl' ? '→' : '←')
-const isNodeValid = computed(() => true)
-
-const editableLabel = computed({
-  get: () => props.data?.label ?? '',
-  set: (val) => props.data.label = val
-})
-
-
-function updateLabel() {
-  // optional label sync logic
-}
-
-function toggleDirection() {
-  props.data.direction = props.data.direction === 'rtl' ? 'ltr' : 'rtl'
-}
-
-function addInput() {
-  props.data.inputs.push({
-    id: '',
-    unitId: '',
-    perCycle: 1
-  })
-}
-
-function addOutput() {
-  props.data.outputs.push({
-    id: '',
-    unitId: '',
-    perCycle: 1
-  })
-}
+const unitOptions = computed(() =>
+  ((project.units ?? []) as Unit[]).map((u) => ({
+    id: u.id,
+    label: `${u.name} (${u.symbol})`,
+  }))
+)
 </script>
 
 
@@ -213,7 +264,22 @@ function addOutput() {
 
 
 
+
+
+
 <style scoped>
+
+
+.producer-node {
+  background-color: #f0fdf4;
+  border: 2px solid #a3d9a5;
+  border-radius: 10px;
+  padding: 1rem;
+  width: 480px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', sans-serif;
+  transition: border-color 0.3s ease;
+}
 .smart-node {
   background-color: #f0fdf4;
   border: 2px solid #a3d9a5;
@@ -417,4 +483,31 @@ select.auto-filled {
   align-items: center;
   width: 100%;
 }
+
+.node {
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  padding: 0.5em;
+}
+.node-header {
+  font-weight: bold;
+  background: #eee;
+  padding: 0.25em;
+  display: flex;
+  justify-content: space-between;
+}
+.node-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+.io-section {
+  margin-top: 0.5em;
+}
+.io-item {
+  display: flex;
+  gap: 0.5em;
+}
+
 </style>

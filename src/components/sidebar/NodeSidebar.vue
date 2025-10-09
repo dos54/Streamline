@@ -60,10 +60,18 @@ const nodeData = ref<NodeData>({ categories: [] })
 
 function onDragStart(event: DragEvent, node: NodeType) {
   if (event.dataTransfer) {
-    event.dataTransfer.setData('application/vueflow', JSON.stringify(node))
+    const payload = {
+      type: node.type,
+      data: node.defaultData
+    }
+    event.dataTransfer.setData('application/vueflow', JSON.stringify(payload))
     event.dataTransfer.effectAllowed = 'move'
+    console.log('🎯 Dragging:', JSON.stringify(payload, null, 2))
   }
 }
+
+
+
 
 onMounted(() => {
   console.log('✅ NodeSidebar mounted')

@@ -19,10 +19,12 @@ import { useProjectStore } from '@/stores/project.store'
 import type { GraphNode } from '@/types/graphNode'
 
 type ResourceFlow = {
+  id?: string
   resourceId: string
   unitId: string
   perCycle: number
 }
+
 
 const route = useRoute()
 const projectStore = useProjectStore()
@@ -45,40 +47,49 @@ function onDrop(event: DragEvent) {
 }
 
 function convertNodeToGraphNode(node: Node): GraphNode {
+  const safeType = (node.type === 'smart' || node.type === 'producer' || node.type === 'consumer')
+    ? node.type
+    : 'smart'
+
+  const safeMode = safeType === 'smart' ? 'transformer' : safeType
+
   return {
     id: node.id,
-    type: "smart",
-
-
-    name: String(node.data?.label ?? "Unnamed Node"),
-    enabled: false,
-    position: {
-      x: node.position.x,
-      y: node.position.y,
-    },
-    count: 0,
-    cycleTime: typeof node.data?.cycleTime === 'number' ? node.data.cycleTime : 0,
-    mode: typeof node.type === 'string' &&
-      ['producer', 'consumer', 'transformer', 'smart'].includes(node.type)
-      ? (node.type === 'smart' ? 'transformer' : node.type) as 'producer' | 'consumer' | 'transformer'
-      : 'producer',
+    type: safeType,
+    name: String(node.data?.label ?? 'Unnamed Node'),
+    enabled: true,
+    position: node.position,
+    count: 1,
+    cycleTime: typeof node.data?.cycleTime === 'number' ? node.data.cycleTime : 1,
+    mode: safeMode,
     inputs: Array.isArray(node.data?.inputs)
-      ? node.data.inputs.map((input: ResourceFlow) => ({
-          resourceId: String(input.resourceId),
-          unitId: String(input.unitId),
-          perCycle: Number(input.perCycle)
-        }))
-      : [],
+  ? node.data.inputs.map((input: ResourceFlow) => ({
+      resourceId: input.resourceId,
+      unitId: input.unitId,
+      perCycle: input.perCycle
+    }))
+  : [],
+
     outputs: Array.isArray(node.data?.outputs)
-      ? node.data.outputs.map((output: ResourceFlow) => ({
-          id: String(output.resourceId),
-          resourceId: String(output.resourceId),
-          unitId: String(output.unitId),
-          perCycle: Number(output.perCycle)
-        }))
-      : []
+  ? node.data.outputs.map((output: ResourceFlow) => ({
+      id: output.id ?? output.resourceId,
+      resourceId: output.resourceId,
+      unitId: output.unitId,
+      perCycle: output.perCycle
+    }))
+  : [],
+
+    tags: [],
+    ui: {},
+    data: {
+      resources: node.data?.resources ?? [],
+      statusMessages: [],
+      statusColor: '#999'
+    }
   }
 }
+
+
 
 function onConnect(params: Connection) {
   projectStore.upsertEdge({

@@ -3,7 +3,8 @@ import { NodeResourceZ } from './nodeResource.schema'
 
 export const GraphNodeZ = z.object({
   id: z.string().min(1),
-  type: z.enum(['smart']), // restrict to SmartNode only
+  type: z.enum(['smart', 'producer', 'consumer']),
+
   name: z.string().min(1),
   enabled: z.boolean().default(true),
   position: z.object({ x: z.number(), y: z.number() }),

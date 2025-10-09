@@ -9,6 +9,9 @@
         :pan-on-drag="true"
         @pane-ready="handlePaneReady"
         @connect="onConnect"
+        @drop="event => handleDrop(event)"
+        @dragover="onDragOver"
+
         class="fill"
       >
         <Background variant="dots" :gap="20" :size="1" />
@@ -30,9 +33,26 @@ import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
+import useDragAndDrop from '@/useDnD'
+const { onDrop, onDragOver } = useDragAndDrop()
+
+function handleDrop(event: DragEvent) {
+  const newNode = onDrop(event, screenToFlowCoordinate)
+  if (newNode) {
+    const graphNode = convertNodeToGraphNode(newNode)
+    projectStore.upsertNode(graphNode)
+    projectStore.validateResourceFlow()
+    console.log('📦 Injected node:', graphNode)
+  }
+}
+
+
+
+
 
 const projectStore = useProjectStore()
-const { fitView } = useVueFlow()
+const { fitView, screenToFlowCoordinate } = useVueFlow()
+
 
 function handlePaneReady() {
   requestAnimationFrame(() => {
