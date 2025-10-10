@@ -33,12 +33,23 @@
       <div class="inputs-section">
         <h3>{{ currentDirection === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div v-for="(input, index) in data?.inputs" :key="index" class="input-row">
-            <label>Input {{ index + 1 }}</label>
+          <div
+            v-for="(input, index) in data?.inputs"
+            :key="index"
+            class="input-row"
+          >
+            <div class="flex justify-between items-center mb-1">
+              <label>Input {{ index + 1 }}</label>
+              <button @click="removeInput(index)" class="remove-button">Remove</button>
+            </div>
 
             <select v-model="input.resourceId" @change="syncUnit(input)">
               <option value="">Select resource</option>
-              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+              <option
+                v-for="res in resourceOptions"
+                :key="res.id"
+                :value="res.id"
+              >
                 {{ res.name }}
               </option>
             </select>
@@ -48,7 +59,11 @@
               :class="{ 'auto-filled': wasAutoFilled(input) }"
             >
               <option value="">Select unit</option>
-              <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
+              <option
+                v-for="unit in unitOptions"
+                :key="unit.id"
+                :value="unit.id"
+              >
                 {{ unit.label }}
               </option>
             </select>
@@ -61,7 +76,10 @@
               placeholder="perCycle"
             />
 
-            <div v-if="!input.resourceId || input.perCycle <= 0" class="validation-warning">
+            <div
+              v-if="!input.resourceId || input.perCycle <= 0"
+              class="validation-warning"
+            >
               ⚠️ Resource and perCycle required
             </div>
           </div>
@@ -70,11 +88,11 @@
       </div>
     </div>
 
-    <Handle type="target" :position="inputPosition" />
-    <Handle type="source" :position="outputPosition" />
+    <!-- These must be inside the root div and fully closed -->
+    <Handle type="target" :position="inputPosition"></Handle>
+    <Handle type="source" :position="outputPosition"></Handle>
   </div>
 </template>
-
 
 
 
@@ -115,7 +133,11 @@ function addInput() {
   })
 }
 
-//  Validation logic
+function removeInput(index: number) {
+  data.inputs.splice(index, 1)
+}
+
+// Validation logic
 function isValidResource(r: { resourceId: string; perCycle: number }) {
   return r.resourceId !== '' && r.perCycle > 0
 }
@@ -124,7 +146,7 @@ const isNodeValid = computed(() =>
   data?.inputs?.every(isValidResource)
 )
 
-//  Direction toggle logic
+// Direction toggle logic
 const currentDirection = ref(data?.direction || 'ltr')
 const directionArrow = computed(() =>
   currentDirection.value === 'rtl' ? '←' : '→'
@@ -147,7 +169,7 @@ function syncUnit(input: typeof data.inputs[number]) {
 
   const resource = project.resources?.find((r) => r.id === input.resourceId)
   if (resource && !input.unitId) {
-    input.unitId = resource.defaultUnitId as string // There is a type error here. "As string" is a band-aid fix that we need to replace later.
+    input.unitId = resource.defaultUnitId as string
   }
 }
 
@@ -172,10 +194,6 @@ const unitOptions = computed(() =>
   }))
 )
 </script>
-
-
-
-
 
 <style scoped>
 .consumer-node {
@@ -240,6 +258,8 @@ const unitOptions = computed(() =>
   font-size: 0.85rem;
 }
 
+
+
 .add-button {
   margin-top: 0.5rem;
   background-color: #d0eaff;
@@ -283,41 +303,6 @@ const unitOptions = computed(() =>
   flex-direction: row-reverse;
 }
 
-.inputs-section {
-  flex: 1;
-  background-color: #fef7f0;
-  padding: 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #f5d9b0;
-}
-
-.input-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.input-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.input-row select,
-.input-row input {
-  padding: 0.3rem;
-  font-size: 0.85rem;
-}
-
-.node-warning {
-  background-color: #fff3cd;
-  color: #856404;
-  padding: 0.5rem;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-}
-
 .direction-toggle {
   display: block;
   margin: 0 auto 1rem;
@@ -335,5 +320,17 @@ const unitOptions = computed(() =>
   background: #b2dfdb;
 }
 
+.auto-filled {
+  background-color: #e0f7fa;
+}
+
+.input-block button,
+.output-block button {
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  color: red;
+  cursor: pointer;
+}
 
 </style>

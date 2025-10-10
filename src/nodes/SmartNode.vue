@@ -1,16 +1,35 @@
 <template>
-  <div
-    class="smart-node w-full max-w-3xl mx-auto p-4 border rounded-md shadow-sm bg-white"
-    :style="{ borderColor: isNodeValid ? '#ccc' : '#f44336' }"
-  >
+  <div class="smart-node w-full max-w-3xl mx-auto p-4 border rounded-md shadow-sm bg-white"
+    :style="{ borderColor: isNodeValid ? '#ccc' : '#f44336' }">
+
     <div class="header text-lg font-bold mb-2">Smart</div>
 
-    <input
-      class="label-input w-full mb-4 px-3 py-2 border rounded text-sm"
-      v-model="editableLabel"
-      @blur="updateLabel"
-      placeholder="Enter name"
-    />
+    <!-- ✅ Test Dropdown Block -->
+    <div class="debug-dropdown mb-4">
+      <label class="text-sm font-medium block mb-1">Test Resource Dropdown</label>
+
+      <div class="text-xs text-gray-500 mb-2">
+        Resource count: {{ resourceOptions.length }}
+      </div>
+
+
+      <div v-if="resourceOptions && resourceOptions.length > 0">
+        <select class="border rounded px-2 py-1 text-sm w-full">
+          <option value="">Select resource</option>
+          <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+            {{ res.name }}
+          </option>
+        </select>
+      </div>
+
+
+      <div v-else class="text-sm text-gray-500 italic">
+        ⚠️ No resources available for this node
+      </div>
+    </div>
+
+    <input class="label-input w-full mb-4 px-3 py-2 border rounded text-sm" v-model="editableLabel" @blur="updateLabel"
+      placeholder="Enter name" />
 
     <button class="direction-toggle mb-4 text-sm text-blue-600" @click="toggleDirection">
       Flow: {{ direction }} {{ directionArrow }}
@@ -22,14 +41,8 @@
 
     <div class="timing-section mb-6">
       <h3 class="text-sm font-semibold mb-1">Timing</h3>
-      <input
-        v-model.number="data.cycleTime"
-        type="number"
-        placeholder="Cycle Time (s)"
-        min="0"
-        step="0.1"
-        class="w-full px-3 py-2 border rounded text-sm"
-      />
+      <input v-model.number="props.data.cycleTime" type="number" placeholder="Cycle Time (s)" min="0" step="0.1"
+        class="w-full px-3 py-2 border rounded text-sm" />
     </div>
 
     <div class="io-wrapper flex flex-col gap-6" :class="direction">
@@ -37,50 +50,42 @@
       <div class="inputs-section">
         <h3 class="text-sm font-semibold mb-2">{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list flex flex-col gap-4">
-          <div
-            v-for="(input, index) in data.inputs"
-            :key="index"
-            class="input-block p-4 border rounded-md bg-gray-50 relative"
-          >
-            <Handle
-              type="target"
-              :id="`input-${index}`"
-              :position="Position.Left"
-              class="absolute top-2 left-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full"
-            />
-
-            <div class="input-label flex items-center justify-between mb-1">
+          <div v-for="(input, index) in props.data.inputs" :key="index"
+            class="input-row p-4 border rounded-md bg-gray-50 relative">
+            <div class="flex justify-between items-center mb-1">
               <label class="text-sm font-semibold">Input {{ index + 1 }}</label>
+              <button @click="removeInput(index)" class="text-xs text-red-600 hover:underline">Remove</button>
             </div>
 
-            <select v-model="input.id" class="px-2 py-1 border rounded text-sm">
+            <Handle type="target" :id="`input-${index}`" :position="Position.Left"
+              class="absolute top-2 left-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full" />
+
+            <select v-model="input.resourceId" @change="syncUnit(input)"
+              class="px-2 py-1 border rounded text-sm w-full">
               <option value="">Select resource</option>
-              <!-- Placeholder options -->
-              <option value="water">Water</option>
-              <option value="energy">Energy</option>
-              <option value="fuel">Fuel</option>
-              <option value="oxygen">Oxygen</option>
-
+              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+                {{ res.name }}
+              </option>
             </select>
 
-            <select v-model="input.unitId" class="px-2 py-1 border rounded text-sm">
+            <div class="text-xs text-gray-500 mt-1">
+              Bound resourceId: {{ input.resourceId }}
+            </div>
+
+            <select v-model="input.unitId" :class="{ 'auto-filled': wasAutoFilled(input) }"
+              class="px-2 py-1 border rounded text-sm">
               <option value="">Select unit</option>
-              <!-- Placeholder options -->
-              <option value="liter">Liter</option>
+              <option value="kg">kg</option>
               <option value="kWh">kWh</option>
-              <option value="gallon">Gallon</option>
-              <option value="mole">Mole</option>
-
+              <option value="liters">liters</option>
             </select>
 
-            <input
-              type="number"
-              v-model.number="input.perCycle"
-              min="0"
-              step="0.1"
-              placeholder="perCycle"
-              class="px-2 py-1 border rounded text-sm w-24"
-            />
+            <input type="number" v-model.number="input.perCycle" min="0" step="0.1" placeholder="perCycle"
+              class="px-2 py-1 border rounded text-sm w-24" />
+
+            <div v-if="!input.resourceId || input.perCycle <= 0" class="text-xs text-red-600 mt-1">
+              ⚠️ Resource and perCycle required
+            </div>
           </div>
         </div>
         <button @click="addInput" class="add-button mt-4 text-sm text-blue-600">+ Add Input</button>
@@ -90,42 +95,37 @@
       <div class="outputs-section">
         <h3 class="text-sm font-semibold mb-2">{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list flex flex-col gap-4">
-          <div
-            v-for="(output, index) in data.outputs"
-            :key="index"
-            class="output-row p-4 border rounded-md bg-gray-50 relative"
-          >
-            <Handle
-              type="source"
-              :id="`output-${index}`"
-              :position="Position.Right"
-              class="absolute top-2 right-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full"
-            />
-
-            <div class="output-label flex items-center justify-between mb-1">
+          <div v-for="(output, index) in props.data.outputs" :key="index"
+            class="output-row p-4 border rounded-md bg-gray-50 relative">
+            <div class="flex justify-between items-center mb-1">
               <label class="text-sm font-semibold">Output {{ index + 1 }}</label>
+              <button @click="removeOutput(index)" class="text-xs text-red-600 hover:underline">Remove</button>
             </div>
 
-            <select v-model="output.id" class="px-2 py-1 border rounded text-sm">
+            <Handle type="source" :id="`output-${index}`" :position="Position.Right"
+              class="absolute top-2 right-[-6px] w-[10px] h-[10px] bg-gray-600 rounded-full" />
+
+            <select v-model="output.resourceId" @change="syncUnit(output)" class="px-2 py-1 border rounded text-sm">
               <option value="">Select resource</option>
-              <option value="res1">Resource 1</option>
-              <option value="res2">Resource 2</option>
+              <option v-for="res in resourceOptions" :key="res.id" :value="res.id">
+                {{ res.name }}
+              </option>
             </select>
 
-            <select v-model="output.unitId" class="px-2 py-1 border rounded text-sm">
+            <select v-model="output.unitId" :class="{ 'auto-filled': wasAutoFilled(output) }"
+              class="px-2 py-1 border rounded text-sm">
               <option value="">Select unit</option>
-              <option value="unit1">Unit 1</option>
-              <option value="unit2">Unit 2</option>
+              <option value="kg">kg</option>
+              <option value="kWh">kWh</option>
+              <option value="liters">liters</option>
             </select>
 
-            <input
-              type="number"
-              v-model.number="output.perCycle"
-              min="0"
-              step="0.1"
-              placeholder="perCycle"
-              class="px-2 py-1 border rounded text-sm w-24"
-            />
+            <input type="number" v-model.number="output.perCycle" min="0" step="0.1" placeholder="perCycle"
+              class="px-2 py-1 border rounded text-sm w-24" />
+
+            <div v-if="!output.resourceId || output.perCycle <= 0" class="text-xs text-red-600 mt-1">
+              ⚠️ Resource and perCycle required
+            </div>
           </div>
         </div>
         <button @click="addOutput" class="add-button mt-4 text-sm text-blue-600">+ Add Output</button>
@@ -151,56 +151,136 @@
 
 
 
+
+
+
+
+
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, watchEffect, onMounted } from 'vue'
 import { Position, Handle } from '@vue-flow/core'
 import type { Resource } from '@/types/resource'
-import { ref, watch } from 'vue'
 
+// Shared type for inputs and outputs
+type NodeIO = {
+  resourceId?: string
+  unitId?: string
+  perCycle?: number
+  id?: string
+}
 
-const props = defineProps<{ data: any; project: { resources?: Resource[] } }>()
+const props = defineProps<{
+  data: {
+    inputs?: NodeIO[]
+    outputs?: NodeIO[]
+    label?: string
+    direction?: string
+    cycleTime?: number
+    data?: {
+      resources?: Resource[]
+    }
+  }
+  project: {
+    resources?: Resource[]
+  }
+}>()
 
-const resourceOptions = computed(() =>
-  (props.project.resources ?? []).map((r) => ({
+console.log('✅ SmartNode resources:', props.data.data?.resources)
+
+const resourceOptions = computed(() => {
+  const local = props.data.data?.resources ?? []
+  const fallback = props.project?.resources ?? []
+  const raw = local.length ? local : fallback
+
+  return raw.map((r: Resource) => ({
     id: r.id,
     name: r.name,
   }))
-)
+})
 
+
+watch(resourceOptions, (val) => {
+  console.log('🧪 resourceOptions changed:', val)
+})
+console.log('🧪 Initial resourceOptions:', resourceOptions.value)
+
+
+
+
+
+
+// Defensive array setup
+onMounted(() => {
+  if (!props.data.inputs) props.data.inputs = []
+  else {
+    props.data.inputs = props.data.inputs.map((input: NodeIO) => ({
+      resourceId: input.resourceId ?? '',
+      unitId: input.unitId ?? '',
+      perCycle: input.perCycle ?? 1
+    }))
+  }
+
+  if (!props.data.outputs) props.data.outputs = []
+  else {
+    props.data.outputs = props.data.outputs.map((output: NodeIO) => ({
+      resourceId: output.resourceId ?? '',
+      unitId: output.unitId ?? '',
+      perCycle: output.perCycle ?? 1,
+      id: output.id ?? `output-${Math.random().toString(36).slice(2)}`
+    }))
+  }
+})
+
+// Direction logic
 const direction = computed(() => props.data?.direction ?? 'ltr')
 const directionArrow = computed(() => direction.value === 'rtl' ? '→' : '←')
 const isNodeValid = computed(() => true)
 
+// Label binding
 const editableLabel = computed({
   get: () => props.data?.label ?? '',
-  set: (val) => props.data.label = val
+  set: (val: string) => props.data.label = val
 })
 
-
-function updateLabel() {
-  // optional label sync logic
-}
-
-function toggleDirection() {
-  props.data.direction = props.data.direction === 'rtl' ? 'ltr' : 'rtl'
-}
-
+// Add/remove logic with reactive-safe mutation
 function addInput() {
-  props.data.inputs.push({
-    id: '',
-    unitId: '',
-    perCycle: 1
-  })
+  const newInput: NodeIO = { resourceId: '', unitId: '', perCycle: 1 }
+  if (!props.data.inputs) props.data.inputs = []
+  props.data.inputs = [...props.data.inputs, newInput]
 }
 
 function addOutput() {
-  props.data.outputs.push({
-    id: '',
-    unitId: '',
-    perCycle: 1
-  })
+  const newOutput: NodeIO = { resourceId: '', unitId: '', perCycle: 1 }
+  if (!props.data.outputs) props.data.outputs = []
+  props.data.outputs = [...props.data.outputs, newOutput]
+}
+
+function removeInput(index: number) {
+  if (!props.data.inputs) return
+  props.data.inputs = props.data.inputs.filter((_: NodeIO, i: number) => i !== index)
+}
+
+function removeOutput(index: number) {
+  if (!props.data.outputs) return
+  props.data.outputs = props.data.outputs.filter((_: NodeIO, i: number) => i !== index)
+}
+
+// Autofill logic
+function syncUnit(output: NodeIO) {
+  const match = props.data.data?.resources?.find((r: Resource) => r.id === output.resourceId)
+  if (match?.defaultUnitId) {
+    output.unitId = match.defaultUnitId
+  }
+}
+
+function wasAutoFilled(entry: NodeIO) {
+  const match = props.data.data?.resources?.find((r: Resource) => r.id === entry.resourceId)
+  return match?.defaultUnitId === entry.unitId
 }
 </script>
+
+
+
 
 
 
@@ -353,10 +433,26 @@ function addOutput() {
   transform: scale(1.2);
 }
 
-.status-icon.exact   { color: #2e7d32; }  /* green */
-.status-icon.over    { color: #0277bd; }  /* blue */
-.status-icon.under   { color: #f9a825; }  /* amber */
-.status-icon.missing { color: #c62828; }  /* red */
+.status-icon.exact {
+  color: #2e7d32;
+}
+
+/* green */
+.status-icon.over {
+  color: #0277bd;
+}
+
+/* blue */
+.status-icon.under {
+  color: #f9a825;
+}
+
+/* amber */
+.status-icon.missing {
+  color: #c62828;
+}
+
+/* red */
 
 select.auto-filled {
   background-color: #e8f5e9;
@@ -417,5 +513,13 @@ select.auto-filled {
   flex-wrap: wrap;
   align-items: center;
   width: 100%;
+}
+
+.io-item button {
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  color: red;
+  cursor: pointer;
 }
 </style>

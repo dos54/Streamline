@@ -4,7 +4,7 @@
     <EditorToolbar />
     <OverlayLogo />
     <OverlayLinks />
-    <NodeSidebar />
+    
   </div>
 </template>
 

@@ -1,48 +1,63 @@
 <template>
   <div class="editor-layout">
-    <div
-     class="canvas-wrapper"
-  @drop="handleDrop"
-  @dragover.prevent
->
-  <VueFlow
-    :nodes="nodes"
-    :edges="edges"
-    :node-types="nodeTypes"
-    :zoom-on-scroll="true"
-    :pan-on-drag="true"
-    @pane-ready="handlePaneReady"
-    @connect="onConnect"
-    class="fill"
-      >
-        <Background variant="dots" :gap="20" :size="1" />
-      </VueFlow>
-      <CanvasOverlay />
+    <div class="canvas-wrapper">
+      <div class="flow-container">
+        <VueFlow
+          :nodes="nodes"
+          :edges="edges"
+          :node-types="nodeTypes"
+          :zoom-on-scroll="true"
+          :pan-on-drag="true"
+          :drag-and-drop="false"
+          @pane-ready="handlePaneReady"
+          @connect="onConnect"
+          class="fill"
+        >
+          <Background variant="dots" :gap="20" :size="1" />
+        </VueFlow>
+        <CanvasOverlay />
+      </div>
     </div>
- </div>   
-
+  </div>
 </template>
+
+
 
 <script setup lang="ts">
 import { computed, watchEffect, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node as FlowNode, Edge as FlowEdge, Connection } from '@vue-flow/core'
-import type { Component, ConcreteComponent } from 'vue'
+import type {
+  NodeTypesObject,
+  NodeComponent,
+  Node as FlowNode,
+  Edge as FlowEdge,
+  Connection
+} from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { useProjectStore } from '@/stores/project.store'
 
-import ProducerNode from '../nodes/ProducerNode.vue'
-import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
-import SmartNode from '../nodes/SmartNode.vue'
 import useDragAndDrop from '@/useDnD'
 import { convertNodeToGraphNode } from '@/utils/graphUtils'
+import SmartNodeWrapper from '../nodes/SmartNodeWrapper.vue'
+
+// ✅ Cast SmartNodeWrapper as NodeComponent to satisfy Vue Flow's strict typing
+const nodeTypes: NodeTypesObject = {
+  producer: markRaw(SmartNodeWrapper) as NodeComponent,
+  consumer: markRaw(SmartNodeWrapper) as NodeComponent,
+  smart: markRaw(SmartNodeWrapper) as NodeComponent,
+}
 
 const projectStore = useProjectStore()
 const { fitView, screenToFlowCoordinate } = useVueFlow()
 const { onDrop, onDragOver } = useDragAndDrop()
 
 function handleDrop(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+
+  console.log('🔥 Drop triggered')
+
   const droppedNode = onDrop(event, screenToFlowCoordinate)
 
   if (!droppedNode || !droppedNode.type || !droppedNode.data) {
@@ -50,7 +65,13 @@ function handleDrop(event: DragEvent) {
     return
   }
 
+  droppedNode.id = `node-${Date.now()}`
   const graphNode = convertNodeToGraphNode(droppedNode)
+
+  if (projectStore.nodes.some(n => n.id === graphNode.id)) {
+    console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
+    return
+  }
 
   projectStore.upsertNode(graphNode)
   projectStore.validateResourceFlow()
@@ -87,12 +108,6 @@ function onConnect(params: Connection) {
     resourceId: output.resourceId,
     enabled: true
   })
-}
-
-const nodeTypes: NodeTypesObject = {
-  producer: markRaw(ProducerNode) as Component,
-  consumer: markRaw(ConsumerNode) as Component,
-  smart: markRaw(SmartNode) as Component,
 }
 
 type OutputResource = {
@@ -194,7 +209,6 @@ const balanceStatusMap = computed(() => {
   return map
 })
 
-// Optional: expose these for SmartNode.vue to use
 function getUnitsForResource(resourceId: string): string[] {
   const resource = projectStore.resources.find(r => r.id === resourceId)
   return resource ? [resource.defaultUnitId ?? ''] : []
@@ -254,6 +268,7 @@ watchEffect(() => {
 </script>
 
 
+
 <style scoped>
 .editor-layout {
   display: flex;
@@ -273,4 +288,11 @@ watchEffect(() => {
   width: 100%;
   height: 100%;
 }
+
+.flow-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
 </style>
