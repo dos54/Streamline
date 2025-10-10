@@ -155,6 +155,7 @@
 import { computed } from 'vue'
 import { Position, Handle } from '@vue-flow/core'
 import type { Resource } from '@/types/resource'
+import { ref, watch } from 'vue'
 
 
 const props = defineProps<{ data: any; project: { resources?: Resource[] } }>()

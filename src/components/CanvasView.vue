@@ -1,5 +1,6 @@
 <template>
   <div class="editor-layout">
+    <div
      class="canvas-wrapper"
   @drop="handleDrop"
   @dragover.prevent
@@ -18,6 +19,7 @@
       </VueFlow>
       <CanvasOverlay />
     </div>
+ </div>   
 
 </template>
 

@@ -122,8 +122,8 @@ watchEffect(() => {
     console.log('Units:', projectStore.units)
     console.log('Resources:', projectStore.resources)
 
-    const sourceId = 'test-node'
-    const targetId = 'consumer-node'
+    //const sourceId = 'test-node'
+    //const targetId = 'consumer-node'
     console.log('Available nodes:', projectStore.nodes.map(n => n.id))
 
     const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
