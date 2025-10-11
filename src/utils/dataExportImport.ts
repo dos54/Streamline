@@ -21,10 +21,13 @@ const ExportDataZ = z.object({
   formatVersion: z.string(),
   exportedAt: z.string(),
   projects: z.array(ProjectZ),
-  metadata: z.object({
-    appVersion: z.string().optional(),
-    totalProjects: z.number().optional()
-  }).catchall(z.unknown()).optional()
+  metadata: z
+    .object({
+      appVersion: z.string().optional(),
+      totalProjects: z.number().optional(),
+    })
+    .catchall(z.unknown())
+    .optional(),
 })
 
 export async function exportAllData(): Promise<string> {
@@ -36,13 +39,15 @@ export async function exportAllData(): Promise<string> {
       exportedAt: new Date().toISOString(),
       projects,
       metadata: {
-        totalProjects: projects.length
-      }
+        totalProjects: projects.length,
+      },
     }
 
     return JSON.stringify(exportData, null, 2)
   } catch (error) {
-    throw new Error(`Failed to export data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(
+      `Failed to export data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }
 
@@ -56,12 +61,14 @@ export async function exportProject(projectId: string): Promise<string> {
     const exportData: ExportData = {
       formatVersion: EXPORT_FORMAT_VERSION,
       exportedAt: new Date().toISOString(),
-      projects: [project]
+      projects: [project],
     }
 
     return JSON.stringify(exportData, null, 2)
   } catch (error) {
-    throw new Error(`Failed to export project: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(
+      `Failed to export project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }
 
@@ -72,16 +79,19 @@ export interface ImportResult {
   errors: string[]
 }
 
-export async function importData(jsonData: string, options: {
-  overwriteExisting?: boolean
-  validateOnly?: boolean
-} = {}): Promise<ImportResult> {
+export async function importData(
+  jsonData: string,
+  options: {
+    overwriteExisting?: boolean
+    validateOnly?: boolean
+  } = {},
+): Promise<ImportResult> {
   const { overwriteExisting = false, validateOnly = false } = options
   const result: ImportResult = {
     success: true,
     projectsImported: 0,
     projectsSkipped: 0,
-    errors: []
+    errors: [],
   }
 
   try {
@@ -105,7 +115,9 @@ export async function importData(jsonData: string, options: {
 
     if (!SUPPORTED_VERSIONS.includes(exportData.formatVersion)) {
       result.success = false
-      result.errors.push(`Unsupported format version: ${exportData.formatVersion}. Supported versions: ${SUPPORTED_VERSIONS.join(', ')}`)
+      result.errors.push(
+        `Unsupported format version: ${exportData.formatVersion}. Supported versions: ${SUPPORTED_VERSIONS.join(', ')}`,
+      )
       return result
     }
 
@@ -122,27 +134,30 @@ export async function importData(jsonData: string, options: {
 
         if (existingProject && !overwriteExisting) {
           result.projectsSkipped++
-          result.errors.push(`Project "${project.name}" (${project.id}) already exists and overwrite is disabled`)
+          result.errors.push(
+            `Project "${project.name}" (${project.id}) already exists and overwrite is disabled`,
+          )
           continue
         }
 
         const projectToSave = {
           ...project,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         }
 
         await db.projects.put(projectToSave)
         result.projectsImported++
       } catch (projectError) {
         result.projectsSkipped++
-        result.errors.push(`Failed to import project "${project.name}": ${projectError instanceof Error ? projectError.message : 'Unknown error'}`)
+        result.errors.push(
+          `Failed to import project "${project.name}": ${projectError instanceof Error ? projectError.message : 'Unknown error'}`,
+        )
       }
     }
 
     if (result.errors.length > 0 && result.projectsImported === 0) {
       result.success = false
     }
-
   } catch (error) {
     result.success = false
     result.errors.push(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -155,7 +170,9 @@ export async function clearAllData(): Promise<void> {
   try {
     await db.projects.clear()
   } catch (error) {
-    throw new Error(`Failed to clear data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(
+      `Failed to clear data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }
 
@@ -179,7 +196,7 @@ export async function getDataStatistics(): Promise<{
   const projects = await db.projects.toArray()
   return {
     totalProjects: projects.length,
-    projectNames: projects.map(p => p.name),
-    lastExported: undefined
+    projectNames: projects.map((p) => p.name),
+    lastExported: undefined,
   }
 }
