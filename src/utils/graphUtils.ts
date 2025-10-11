@@ -1,4 +1,4 @@
-import type { FlowNode } from '@vue-flow/core'
+import type { GraphNode } from '@/schemas/graphNode.schema'
 
 type DroppedNode = {
   id: string
@@ -16,21 +16,28 @@ type DroppedNode = {
   }
 }
 
-export function convertNodeToGraphNode(droppedNode: DroppedNode): FlowNode {
+export function convertNodeToGraphNode(droppedNode: DroppedNode): GraphNode {
   return {
     id: droppedNode.id,
-    type: droppedNode.type,
+    type: droppedNode.type as 'smart' | 'producer' | 'consumer',
+    name: droppedNode.data.label ?? 'Unnamed',
+    enabled: true,
     position: droppedNode.position,
+    count: 1,
+    cycleTime: droppedNode.data.cycleTime ?? 1,
+    mode: 'producer',
+    inputs: droppedNode.data.inputs ?? [],
+    outputs: droppedNode.data.outputs ?? [],
+    tags: [],
+    ui: undefined,
+    templateId: undefined,
     data: {
       label: droppedNode.data.label,
       direction: droppedNode.data.direction,
       cycleTime: droppedNode.data.cycleTime,
       inputs: droppedNode.data.inputs,
       outputs: droppedNode.data.outputs,
-      data: {
-        ...(droppedNode.data.data ?? {})
-      }
+      resources: droppedNode.data.data?.resources ?? []
     }
   }
 }
-

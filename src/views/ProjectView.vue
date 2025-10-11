@@ -1,6 +1,6 @@
 <template>
   <div v-if="projectStore.current" @dragover="onDragOver" @drop="onDrop">
-    <CanvasView :nodes="projectStore.nodes" :edges="projectStore.edges" @connect="onConnect"/>
+    <CanvasView :nodes="projectStore.nodes" :edges="projectStore.edges" @connect="onConnect" />
   </div>
   <div v-else class="loading">
     <span class="spinner"></span>
@@ -63,21 +63,21 @@ function convertNodeToGraphNode(node: Node): GraphNode {
     cycleTime: typeof node.data?.cycleTime === 'number' ? node.data.cycleTime : 1,
     mode: safeMode,
     inputs: Array.isArray(node.data?.inputs)
-  ? node.data.inputs.map((input: ResourceFlow) => ({
-      resourceId: input.resourceId,
-      unitId: input.unitId,
-      perCycle: input.perCycle
-    }))
-  : [],
+      ? node.data.inputs.map((input: ResourceFlow) => ({
+        resourceId: input.resourceId,
+        unitId: input.unitId,
+        perCycle: input.perCycle
+      }))
+      : [],
 
     outputs: Array.isArray(node.data?.outputs)
-  ? node.data.outputs.map((output: ResourceFlow) => ({
-      id: output.id ?? output.resourceId,
-      resourceId: output.resourceId,
-      unitId: output.unitId,
-      perCycle: output.perCycle
-    }))
-  : [],
+      ? node.data.outputs.map((output: ResourceFlow) => ({
+        id: output.id ?? output.resourceId,
+        resourceId: output.resourceId,
+        unitId: output.unitId,
+        perCycle: output.perCycle
+      }))
+      : [],
 
     tags: [],
     ui: {},
@@ -124,24 +124,33 @@ watchEffect(() => {
 
     //const sourceId = 'test-node'
     //const targetId = 'consumer-node'
+
+
+    const sourceId = 'node-1' // or dynamically from your logic
+    const targetId = 'node-2' // or dynamically from your logic
+
     console.log('Available nodes:', projectStore.nodes.map(n => n.id))
 
-    const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
-    if (!edgeExists) {
-      projectStore.edges.push({
-        id: 'edge-1',
-        source: sourceId,
-        target: targetId,
-        sourceHandle: 'output-0',
-        targetHandle: 'input-0',
-        resourceId: 'water',
-        enabled: true
-      })
-      console.log('✅ Injected edge between', sourceId, '→', targetId)
+   
 
-      // ✅ Trigger validation after edge injection
-      projectStore.validateResourceFlow()
-    }
+const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
+if (!edgeExists) {
+  projectStore.edges.push({
+    id: 'edge-1',
+    source: sourceId,
+    target: targetId,
+    sourceHandle: 'output-0',
+    targetHandle: 'input-0',
+    resourceId: 'water',
+    enabled: true
+  })
+
+  console.log('✅ Injected edge between', sourceId, '→', targetId)
+
+  // ✅ Trigger validation after edge injection
+  projectStore.validateResourceFlow()
+}
+
   }
 })
 </script>

@@ -62,9 +62,11 @@ export function normalizeToSmartNode(node: any): GraphNode {
     ui: node.ui ?? {},
     templateId: node.templateId ?? undefined,
     data: {
+      ...node.data,
       resources: node.data?.resources ?? [],
       label: node.data?.label ?? node.name ?? 'Smart'
     }
+
   }
 }
 
@@ -161,6 +163,8 @@ export const useProjectStore = defineStore('project', {
       this.current.units = [] // Add unit extraction logic if needed
 
       this.projectLoaded = true
+      this.validateResourceFlow()
+
       console.log('✅ Project loaded with', normalizedNodes.length, 'nodes')
     },
 
@@ -227,11 +231,16 @@ export const useProjectStore = defineStore('project', {
     validateResourceFlow() {
       const results = []
       const balanceMap = []
+      console.log('🚦 Running validateResourceFlow...')
+
 
       for (const node of this.current.nodes) {
         if (node.mode === 'consumer' || node.mode === 'transformer') {
           const inputs = node.inputs ?? []
           const messages = []
+
+          console.log('🔍 Validating node:', node.id, 'mode:', node.mode)
+
 
           for (const input of inputs) {
             const matchingEdges = this.current.edges.filter(e =>
@@ -240,8 +249,12 @@ export const useProjectStore = defineStore('project', {
               e.enabled
             )
 
-            const totalSupplied = matchingEdges.length * input.perCycle
-            const valid = totalSupplied >= input.perCycle
+            console.log('🧪 Status messages for', node.id, ':', messages)
+
+
+            const totalSupplied = matchingEdges.length * (input.perCycle ?? 0)
+            const valid = totalSupplied >= (input.perCycle ?? 0)
+
 
             messages.push(valid
               ? `✅ ${input.resourceId} is sufficiently supplied`
@@ -258,15 +271,29 @@ export const useProjectStore = defineStore('project', {
               nodeId: node.id,
               resourceId: input.resourceId,
               supplied: totalSupplied,
-              required: input.perCycle
+              required: input.perCycle ?? 0
+
             })
           }
 
           if (!node.data) node.data = {}
           node.data.statusMessages = messages
           node.data.statusColor = messages.every(m => m.startsWith('✅')) ? '#4caf50' : '#f44336'
+
+          // ✅ Inject statusTypes for visual feedback
+          node.data.statusTypes = messages.map(m =>
+            m.includes('under') ? 'under:' + m.split(' ')[1] :
+              m.includes('sufficiently') ? 'exact:' + m.split(' ')[1] :
+                'missing:' + m.split(' ')[1]
+          )
+
+          console.log('✅ Final node data:', node.id, node.data)
+
+
         }
       }
+
+
 
       this.flowResults = results
       this.balanceMap = balanceMap
@@ -281,7 +308,7 @@ function createEmptyProject(): Project {
     schemaVersion: 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-   settings: {
+    settings: {
       baseTimeUnitId: 's',
       defaultRateDisplay: 'per_s',
       resourceDefaultUnits: {},

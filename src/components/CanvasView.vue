@@ -1,7 +1,7 @@
 <template>
-  <div class="editor-layout">
-    <div class="canvas-wrapper">
-      <div class="flow-container fill">
+  <div class="editor-layout" style="height: 100vh; width: 100vw; position: relative;">
+    <div class="canvas-wrapper" style="height: 100%; width: 100%;">
+      <div class="flow-container fill" style="height: 100%; width: 100%;">
         <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
           :drag-and-drop="false" @pane-ready="handlePaneReady" @connect="onConnect" class="fill">
           <Background variant="dots" :gap="20" :size="1" />
@@ -14,16 +14,20 @@
 
 
 
+
 <script setup lang="ts">
 import { computed, watchEffect, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
+
 import type {
   NodeTypesObject,
   NodeComponent,
-  Node as FlowNode,
   Edge as FlowEdge,
   Connection
 } from '@vue-flow/core'
+
+import type { GraphNode } from '@/schemas/graphNode.schema'
+
 import { Background } from '@vue-flow/background'
 import { useProjectStore } from '@/stores/project.store'
 
@@ -31,6 +35,8 @@ import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import useDragAndDrop from '@/useDnD'
 import { convertNodeToGraphNode } from '@/utils/graphUtils'
 import SmartNodeWrapper from '../nodes/SmartNodeWrapper.vue'
+import type { Node as FlowNode } from '@vue-flow/core'
+
 
 // ✅ Cast SmartNodeWrapper as NodeComponent to satisfy Vue Flow's strict typing
 const nodeTypes: NodeTypesObject = {
@@ -62,20 +68,33 @@ function handleDrop(event: DragEvent) {
     resources: projectStore.resources
   }
 
-  droppedNode.id = `node-${Date.now()}`
-  const graphNode = convertNodeToGraphNode(droppedNode)
+  // 🧠 Ensure type is always defined
+  const safeNode = {
+    ...droppedNode,
+    id: `node-${Date.now()}`, // ✅ assign ID here
+    type: droppedNode.type ?? 'smart', // ✅ fallback if missing
+    data: droppedNode.data ?? {
+      label: 'New Node',
+      inputs: [],
+      outputs: [],
+      resources: []
+    }
+    }
 
-  console.log('🧪 Injected resources into graphNode:', graphNode.data?.data?.resources)
+// 🧪 Normalize and inject
+const graphNode = convertNodeToGraphNode(safeNode)
+console.log('🧪 Injected resources into graphNode:', graphNode.data?.resources)
 
-  if (projectStore.nodes.some(n => n.id === graphNode.id)) {
-    console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
-    return
-  }
 
-  projectStore.upsertNode(graphNode)
-  projectStore.validateResourceFlow()
+  if(projectStore.nodes.some(n => n.id === graphNode.id)) {
+      console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
+  return
+}
 
-  console.log('📦 Injected node:', graphNode)
+projectStore.upsertNode(graphNode)
+projectStore.validateResourceFlow()
+
+console.log('📦 Injected node:', graphNode)
 }
 
 

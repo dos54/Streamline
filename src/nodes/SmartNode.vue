@@ -2,7 +2,36 @@
   <div class="smart-node w-full max-w-3xl mx-auto p-4 border rounded-md shadow-sm bg-white"
     :style="{ borderColor: isNodeValid ? '#ccc' : '#f44336' }">
 
-    <div class="header text-lg font-bold mb-2">Smart</div>
+    <div class="header text-lg font-bold mb-2">
+      {{ props.data.label ?? 'Smart' }}
+    </div>
+
+
+
+    <div class="node-type-badge inline-block px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 mb-2">
+      {{ nodeType }}
+    </div>
+
+
+
+    <!-- 🔍 Debug StatusTypes -->
+    <div class="text-xs text-gray-500 mb-2">
+      Debug: {{ props.data.statusTypes }}
+    </div>
+
+
+    
+    <div v-if="props.statusTypes?.length" class="status-icons flex gap-1 mb-4">
+  <span
+    v-for="type in props.statusTypes"
+    :key="type"
+    :class="['status-icon', type.split(':')[0]]"
+    :title="formatStatusTooltip(type)"
+  >
+    {{ getStatusIcon(type) }}
+  </span>
+</div>
+
 
     <!-- ✅ Test Dropdown Block -->
     <div class="debug-dropdown mb-4">
@@ -83,7 +112,8 @@
             <input type="number" v-model.number="input.perCycle" min="0" step="0.1" placeholder="perCycle"
               class="px-2 py-1 border rounded text-sm w-24" />
 
-            <div v-if="!input.resourceId || input.perCycle <= 0" class="text-xs text-red-600 mt-1">
+            <div v-if="!input.resourceId || (input.perCycle ?? 0) <= 0" class="text-xs text-red-600 mt-1">
+
               ⚠️ Resource and perCycle required
             </div>
           </div>
@@ -123,13 +153,13 @@
             <input type="number" v-model.number="output.perCycle" min="0" step="0.1" placeholder="perCycle"
               class="px-2 py-1 border rounded text-sm w-24" />
 
-            <div v-if="!output.resourceId || output.perCycle <= 0" class="text-xs text-red-600 mt-1">
-              ⚠️ Resource and perCycle required
+            <div v-if="!output.resourceId || (output.perCycle ?? 0) <= 0" class="text-xs text-red-600 mt-1">
+              ⚠️ Missing or invalid output
             </div>
           </div>
         </div>
-        <button @click="addOutput" class="add-button mt-4 text-sm text-blue-600">+ Add Output</button>
       </div>
+      <button @click="addOutput" class="add-button mt-4 text-sm text-blue-600">+ Add Output</button>
     </div>
   </div>
 </template>
@@ -159,33 +189,87 @@
 <script setup lang="ts">
 import { computed, ref, watch, watchEffect, onMounted } from 'vue'
 import { Position, Handle } from '@vue-flow/core'
-import type { Resource } from '@/types/resource'
+import type { NodeIO, GraphNode } from '@/schemas/graphNode.schema'
+import type { Resource } from '@/schemas/graphNode.schema'
 
-// Shared type for inputs and outputs
-type NodeIO = {
-  resourceId?: string
-  unitId?: string
-  perCycle?: number
-  id?: string
+function syncUnit(entry: NodeIO) {
+  // ✅ Find the matching resource by ID
+  const match = resourceOptions.value.find((r: Resource) => r.id === entry.resourceId)
+
+  if (match?.defaultUnitId) {
+    entry.unitId = match.defaultUnitId
+    console.log(`🔄 Autofilled unitId for ${entry.resourceId}:`, entry.unitId)
+  } else {
+    console.warn(`⚠️ No matching resource found for ${entry.resourceId}`)
+  }
 }
 
+
+
+
+
 const props = defineProps<{
-  data: {
+  id: string
+  type: string
+  data: GraphNode['data'] & {
     inputs?: NodeIO[]
     outputs?: NodeIO[]
+    statusTypes?: string[]
     label?: string
     direction?: string
     cycleTime?: number
     name?: string
-    data?:
-     {
-      resources?: Resource[]
-    }
+    resources?: Resource[]
   }
   project: {
     resources?: Resource[]
   }
+  statusTypes?: string[]
 }>()
+
+function getStatusIcon(type: string): string {
+  const prefix = type.split(':')[0]
+  return prefix === 'exact' ? '✅'
+    : prefix === 'over' ? '🔼'
+    : prefix === 'under' ? '⚠️'
+    : prefix === 'missing' ? '❌'
+    : '❓'
+}
+
+function formatStatusTooltip(type: string): string {
+  const [prefix, resource] = type.split(':')
+  if (!resource) return 'Unknown status'
+
+  return prefix === 'exact' ? `✅ ${resource} is balanced`
+    : prefix === 'over' ? `🔼 ${resource} is oversupplied`
+    : prefix === 'under' ? `⚠️ ${resource} is undersupplied`
+    : prefix === 'missing' ? `❌ ${resource} is missing`
+    : `❓ Unknown status for ${resource}`
+}
+
+
+onMounted(() => {
+  const hasError = props.data?.statusTypes?.includes('error') ?? false
+  console.log('Mounted SmartNode:', props.data?.statusTypes)
+  console.log('❗ Has error status:', hasError)
+})
+
+
+watchEffect(() => {
+  console.log('Reactive statusTypes:', props.data.statusTypes)
+})
+
+const nodeType = computed(() => {
+  const hasInputs = props.data.inputs?.length ?? 0
+  const hasOutputs = props.data.outputs?.length ?? 0
+
+  if (props.data.statusTypes === undefined) return 'Unvalidated'
+  if (hasInputs && !hasOutputs) return 'Consumer'
+  if (!hasInputs && hasOutputs) return 'Producer'
+  if (hasInputs && hasOutputs) return 'Smart'
+  return 'Unconfigured'
+})
+
 
 console.log('✅ SmartNode resources:', props.data.resources);
 
@@ -223,8 +307,9 @@ onMounted(() => {
     }))
   }
 
-  if (!props.data.outputs) props.data.outputs = []
-  else {
+  if (!props.data.outputs) {
+    props.data.outputs = []
+  } else {
     props.data.outputs = props.data.outputs.map((output: NodeIO) => ({
       resourceId: output.resourceId ?? '',
       unitId: output.unitId ?? '',
@@ -232,6 +317,7 @@ onMounted(() => {
       id: output.id ?? `output-${Math.random().toString(36).slice(2)}`
     }))
   }
+
 })
 
 // Direction logic
@@ -244,6 +330,18 @@ const editableLabel = computed({
   get: () => props.data?.label ?? props.data?.name ?? 'Smart',
   set: (val: string) => props.data.label = val
 })
+
+// ✅ Label update handler
+function updateLabel() {
+  console.log('📝 Label updated:', editableLabel.value)
+  // Optional: emit or sync with store
+}
+
+// ✅ Direction toggle handler
+function toggleDirection() {
+  props.data.direction = props.data.direction === 'ltr' ? 'rtl' : 'ltr'
+  console.log('🔁 Direction toggled to:', props.data.direction)
+}
 
 
 
@@ -270,19 +368,13 @@ function removeOutput(index: number) {
   props.data.outputs = props.data.outputs.filter((_: NodeIO, i: number) => i !== index)
 }
 
-// Autofill logic
-function syncUnit(entry: NodeIO) {
-  const match = resourceOptions.value.find((r) => r.id === entry.resourceId)
-  if (match?.defaultUnitId) {
-    entry.unitId = match.defaultUnitId
-    console.log(`🔄 Autofilled unitId for ${entry.resourceId}:`, entry.unitId)
-  } else {
-    console.warn(`⚠️ No matching resource found for ${entry.resourceId}`)
-  }
-}
+
+
+
 
 function wasAutoFilled(entry: NodeIO) {
-  const match = resourceOptions.value.find((r) => r.id === entry.resourceId)
+  const match = resourceOptions.value.find((r: Resource) => r.id === entry.resourceId)
+
   return match?.defaultUnitId === entry.unitId
 }
 </script>
