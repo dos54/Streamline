@@ -176,7 +176,9 @@ const props = defineProps<{
     label?: string
     direction?: string
     cycleTime?: number
-    data?: {
+    name?: string
+    data?:
+     {
       resources?: Resource[]
     }
   }
@@ -185,29 +187,30 @@ const props = defineProps<{
   }
 }>()
 
-console.log('✅ SmartNode resources:', props.data.data?.resources)
+console.log('✅ SmartNode resources:', props.data.resources);
+
+
 
 const resourceOptions = computed(() => {
-  const local = props.data.data?.resources ?? []
+  const local = (props.data as any).resources ?? []
   const fallback = props.project?.resources ?? []
   const raw = local.length ? local : fallback
 
   return raw.map((r: Resource) => ({
     id: r.id,
     name: r.name,
+    defaultUnitId: r.defaultUnitId ?? ''
   }))
 })
+
+
+
 
 
 watch(resourceOptions, (val) => {
   console.log('🧪 resourceOptions changed:', val)
 })
 console.log('🧪 Initial resourceOptions:', resourceOptions.value)
-
-
-
-
-
 
 // Defensive array setup
 onMounted(() => {
@@ -238,9 +241,11 @@ const isNodeValid = computed(() => true)
 
 // Label binding
 const editableLabel = computed({
-  get: () => props.data?.label ?? '',
+  get: () => props.data?.label ?? props.data?.name ?? 'Smart',
   set: (val: string) => props.data.label = val
 })
+
+
 
 // Add/remove logic with reactive-safe mutation
 function addInput() {
@@ -266,18 +271,22 @@ function removeOutput(index: number) {
 }
 
 // Autofill logic
-function syncUnit(output: NodeIO) {
-  const match = props.data.data?.resources?.find((r: Resource) => r.id === output.resourceId)
+function syncUnit(entry: NodeIO) {
+  const match = resourceOptions.value.find((r) => r.id === entry.resourceId)
   if (match?.defaultUnitId) {
-    output.unitId = match.defaultUnitId
+    entry.unitId = match.defaultUnitId
+    console.log(`🔄 Autofilled unitId for ${entry.resourceId}:`, entry.unitId)
+  } else {
+    console.warn(`⚠️ No matching resource found for ${entry.resourceId}`)
   }
 }
 
 function wasAutoFilled(entry: NodeIO) {
-  const match = props.data.data?.resources?.find((r: Resource) => r.id === entry.resourceId)
+  const match = resourceOptions.value.find((r) => r.id === entry.resourceId)
   return match?.defaultUnitId === entry.unitId
 }
 </script>
+
 
 
 

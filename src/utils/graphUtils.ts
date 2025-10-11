@@ -1,10 +1,36 @@
-export function convertNodeToGraphNode(node: any): any {
-  return {
-    id: node.id,
-    type: node.type,
-    position: node.position ?? { x: 0, y: 0 },
-    data: node.data ?? {},
-    name: node.data?.label ?? node.name ?? 'Unnamed Node',
-    enabled: node.enabled ?? true,
+import type { FlowNode } from '@vue-flow/core'
+
+type DroppedNode = {
+  id: string
+  type: string
+  position: { x: number; y: number }
+  data: {
+    label?: string
+    direction?: string
+    cycleTime?: number
+    inputs?: any[]
+    outputs?: any[]
+    data?: {
+      resources?: { id: string; name: string; defaultUnitId?: string }[]
+    }
   }
 }
+
+export function convertNodeToGraphNode(droppedNode: DroppedNode): FlowNode {
+  return {
+    id: droppedNode.id,
+    type: droppedNode.type,
+    position: droppedNode.position,
+    data: {
+      label: droppedNode.data.label,
+      direction: droppedNode.data.direction,
+      cycleTime: droppedNode.data.cycleTime,
+      inputs: droppedNode.data.inputs,
+      outputs: droppedNode.data.outputs,
+      data: {
+        ...(droppedNode.data.data ?? {})
+      }
+    }
+  }
+}
+

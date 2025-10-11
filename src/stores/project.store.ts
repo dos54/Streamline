@@ -33,6 +33,12 @@ export function normalizeToSmartNode(node: any): GraphNode {
 
   const mode = modeMap[node.type] ?? 'transformer'
 
+  const normalizedInputs: InputPort[] = (node.data?.inputs ?? node.inputs ?? []).map((i: any) => ({
+    resourceId: i.resourceId,
+    unitId: i.unitId,
+    perCycle: i.perCycle
+  }))
+
   const normalizedOutputs: OutputPort[] = (node.data?.outputs ?? node.outputs ?? []).map((o: any, i: number) => ({
     id: o.id ?? `output-${i}-${crypto.randomUUID()}`,
     resourceId: o.resourceId,
@@ -40,15 +46,10 @@ export function normalizeToSmartNode(node: any): GraphNode {
     perCycle: o.perCycle
   }))
 
-  const normalizedInputs: InputPort[] = (node.data?.inputs ?? node.inputs ?? []).map((i: any) => ({
-    resourceId: i.resourceId,
-    unitId: i.unitId,
-    perCycle: i.perCycle
-  }))
-
   return {
     id: node.id,
-    type: 'smart',
+    type: node.type ?? 'smart',
+
     mode,
     name: node.data?.label ?? node.name ?? 'Smart Node',
     enabled: node.enabled ?? true,
@@ -61,29 +62,29 @@ export function normalizeToSmartNode(node: any): GraphNode {
     ui: node.ui ?? {},
     templateId: node.templateId ?? undefined,
     data: {
-      resources: node.data?.resources ?? []
+      resources: node.data?.resources ?? [],
+      label: node.data?.label ?? node.name ?? 'Smart'
     }
   }
 }
 
 export const useProjectStore = defineStore('project', {
   state: () => ({
-  current: createEmptyProject(),
-  projectLoaded: false,
-  flowResults: [] as {
-    target: string
-    resourceId: string
-    valid: boolean
-    message: string
-  }[],
-  balanceMap: [] as {
-    nodeId: string
-    resourceId: string
-    supplied: number
-    required: number
-  }[]
-}),
-
+    current: createEmptyProject(),
+    projectLoaded: false,
+    flowResults: [] as {
+      target: string
+      resourceId: string
+      valid: boolean
+      message: string
+    }[],
+    balanceMap: [] as {
+      nodeId: string
+      resourceId: string
+      supplied: number
+      required: number
+    }[]
+  }),
 
   getters: {
     nodes: (s) => s.current.nodes,
@@ -280,7 +281,7 @@ function createEmptyProject(): Project {
     schemaVersion: 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    settings: {
+   settings: {
       baseTimeUnitId: 's',
       defaultRateDisplay: 'per_s',
       resourceDefaultUnits: {},
@@ -289,7 +290,7 @@ function createEmptyProject(): Project {
         targetTimeUnitId: 's',
         tolerance: 0.01
       },
-            ui: {
+      ui: {
         snapToGrid: true,
         gridSize: 20,
         minimap: true
@@ -301,4 +302,3 @@ function createEmptyProject(): Project {
     units: []
   }
 }
-

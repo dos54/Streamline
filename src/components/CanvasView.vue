@@ -1,18 +1,9 @@
 <template>
   <div class="editor-layout">
     <div class="canvas-wrapper">
-      <div class="flow-container">
-        <VueFlow
-          :nodes="nodes"
-          :edges="edges"
-          :node-types="nodeTypes"
-          :zoom-on-scroll="true"
-          :pan-on-drag="true"
-          :drag-and-drop="false"
-          @pane-ready="handlePaneReady"
-          @connect="onConnect"
-          class="fill"
-        >
+      <div class="flow-container fill">
+        <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
+          :drag-and-drop="false" @pane-ready="handlePaneReady" @connect="onConnect" class="fill">
           <Background variant="dots" :gap="20" :size="1" />
         </VueFlow>
         <CanvasOverlay />
@@ -65,8 +56,16 @@ function handleDrop(event: DragEvent) {
     return
   }
 
+  // ✅ Inject resources into droppedNode.data.data BEFORE conversion
+  droppedNode.data.data = {
+    ...(droppedNode.data.data ?? {}),
+    resources: projectStore.resources
+  }
+
   droppedNode.id = `node-${Date.now()}`
   const graphNode = convertNodeToGraphNode(droppedNode)
+
+  console.log('🧪 Injected resources into graphNode:', graphNode.data?.data?.resources)
 
   if (projectStore.nodes.some(n => n.id === graphNode.id)) {
     console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
@@ -78,6 +77,7 @@ function handleDrop(event: DragEvent) {
 
   console.log('📦 Injected node:', graphNode)
 }
+
 
 function handlePaneReady() {
   requestAnimationFrame(() => {
@@ -294,5 +294,4 @@ watchEffect(() => {
   height: 100%;
   position: relative;
 }
-
 </style>
