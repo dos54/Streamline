@@ -32,6 +32,7 @@
     </div>
 
     <div class="io-wrapper" :class="direction">
+      <!-- Inputs -->
       <div class="inputs-section" v-if="Array.isArray(data.inputs)">
         <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
@@ -41,7 +42,10 @@
             class="input-row"
             style="position: relative"
           >
-            <label>Input {{ index + 1 }}</label>
+            <div class="flex justify-between items-center mb-1">
+              <label>Input {{ index + 1 }}</label>
+              <button @click="removeInput(index)" class="text-xs text-red-600 hover:underline">Remove</button>
+            </div>
 
             <Handle
               type="target"
@@ -73,6 +77,7 @@
         <button @click="addInput" class="add-button">+ Add Input</button>
       </div>
 
+      <!-- Outputs -->
       <div class="outputs-section" v-if="Array.isArray(data.outputs)">
         <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list">
@@ -82,11 +87,14 @@
             class="output-row"
             style="position: relative"
           >
-            <label>
-              Output {{ index + 1 }}
-              <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
-              <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
-            </label>
+            <div class="flex justify-between items-center mb-1">
+              <label>
+                Output {{ index + 1 }}
+                <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
+                <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
+              </label>
+              <button @click="removeOutput(index)" class="text-xs text-red-600 hover:underline">Remove</button>
+            </div>
 
             <Handle
               type="source"
@@ -94,7 +102,6 @@
               :id="`output-${output.id}`"
               class="row-handle"
             />
-              
 
             <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
@@ -121,6 +128,7 @@
               step="0.1"
               placeholder="perCycle"
             />
+
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
@@ -131,6 +139,7 @@
     </div>
   </div>
 </template>
+
 
 
 
@@ -280,6 +289,15 @@ watchEffect(() => {
   console.log('Resources:', project.resources ?? [])
   console.log('Units:', project.units ?? [])
 })
+
+function removeInput(index: number) {
+  data.inputs.splice(index, 1)
+}
+
+function removeOutput(index: number) {
+  data.outputs.splice(index, 1)
+}
+
 </script>
 
 
@@ -457,6 +475,16 @@ select.auto-filled {
   border-radius: 50%;
   z-index: 10;
 }
+
+.input-block button,
+.output-block button {
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  color: red;
+  cursor: pointer;
+}
+
 
 
 </style>

@@ -18,5 +18,7 @@ useHead({titleTemplate: (t?: string) => (t ? `${t} • Streamline Flow` : 'Strea
   width: 100svw;
   height: 100svh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 </style>

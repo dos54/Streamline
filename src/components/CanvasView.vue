@@ -1,52 +1,147 @@
 <template>
-  <div class="canvas-wrapper">
-    <VueFlow
-      :nodes="nodes"
-      :edges="edges"
-      :node-types="nodeTypes"
-      :zoom-on-scroll="true"
-      :pan-on-drag="true"
-      @pane-ready="handlePaneReady"
-      @connect="onConnect"
-      class="fill"
-    >
-      <Background variant="dots" :gap="20" :size="1" />
-    </VueFlow>
-    <CanvasOverlay />
+  <div class="editor-layout" style="height: 100vh; width: 100vw; position: relative;">
+    <div class="canvas-wrapper" style="height: 100%; width: 100%;">
+      <div class="flow-container fill" style="height: 100%; width: 100%;">
+        <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
+          :drag-and-drop="false" @pane-ready="handlePaneReady" @connect="onConnect" class="fill">
+          <Background variant="dots" :gap="20" :size="1" />
+
+          <!-- Tooltip-enhanced edge labels -->
+          <template #edge-label="{ data }">
+            <VTooltip placement="top">
+              <template #activator>
+                <span class="edge-label">{{ data.edge.label }}</span>
+              </template>
+              <span>
+                <strong>Resource:</strong> {{ data.edge.resourceId ?? 'Unknown' }}<br />
+                <strong>Unit:</strong> {{ data.edge.unitId ?? '?' }}
+              </span>
+            </VTooltip>
+          </template>
+        </VueFlow>
+
+        <CanvasOverlay />
+      </div>
+    </div>
   </div>
 </template>
 
+
+
+
+
 <script setup lang="ts">
-import { watchEffect } from 'vue'
+import { computed, watchEffect, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge, Connection } from '@vue-flow/core'
-import type { Component } from 'vue'
+
+import type {
+  NodeTypesObject,
+  NodeComponent,
+  Edge as FlowEdge,
+  Connection
+} from '@vue-flow/core'
+
+import type { GraphNode } from '@/schemas/graphNode.schema'
+
 import { Background } from '@vue-flow/background'
+import { useProjectStore } from '@/stores/project.store'
 
-import ProducerNode from '../nodes/ProducerNode.vue'
-import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
+import useDragAndDrop from '@/useDnD'
+import { convertNodeToGraphNode } from '@/utils/graphUtils'
+import SmartNodeWrapper from '../nodes/SmartNodeWrapper.vue'
+import type { Node as FlowNode } from '@vue-flow/core'
 
-const props = defineProps<{
-  nodes: Node[],
-  edges: Edge[],
-}>()
 
-const emit = defineEmits(['connect'])
-
-function onConnect(params: Connection) {
-  emit('connect', params)
+// ✅ Cast SmartNodeWrapper as NodeComponent to satisfy Vue Flow's strict typing
+const nodeTypes: NodeTypesObject = {
+  producer: markRaw(SmartNodeWrapper) as NodeComponent,
+  consumer: markRaw(SmartNodeWrapper) as NodeComponent,
+  smart: markRaw(SmartNodeWrapper) as NodeComponent,
 }
 
-const { fitView, addEdges } = useVueFlow()
+const projectStore = useProjectStore()
+const { fitView, screenToFlowCoordinate } = useVueFlow()
+const { onDrop, onDragOver } = useDragAndDrop()
+
+function handleDrop(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+
+  console.log('🔥 Drop triggered')
+
+  const droppedNode = onDrop(event, screenToFlowCoordinate)
+
+  if (!droppedNode || !droppedNode.type || !droppedNode.data) {
+    console.warn('⚠️ Invalid node dropped:', droppedNode)
+    return
+  }
+
+  // ✅ Inject resources into droppedNode.data.data BEFORE conversion
+  droppedNode.data.data = {
+    ...(droppedNode.data.data ?? {}),
+    resources: projectStore.current.resources
+  }
+
+  // 🧠 Ensure type is always defined
+  const safeNode = {
+    ...droppedNode,
+    id: `node-${Date.now()}`, // ✅ assign ID here
+    type: droppedNode.type ?? 'smart', // ✅ fallback if missing
+    data: droppedNode.data ?? {
+      label: 'New Node',
+      inputs: [],
+      outputs: [],
+      resources: []
+    }
+  }
+
+  // 🧪 Normalize and inject
+  const graphNode = convertNodeToGraphNode(safeNode)
+  console.log('🧪 Injected resources into graphNode:', graphNode.data?.resources)
+
+
+  if (projectStore.nodes.some(n => n.id === graphNode.id)) {
+    console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
+    return
+  }
+
+  projectStore.upsertNode(graphNode)
+  projectStore.validateResourceFlow()
+
+  console.log('📦 Injected node:', graphNode)
+}
+
 
 function handlePaneReady() {
-  fitView({ padding: 0.2 })
+  requestAnimationFrame(() => {
+    fitView({ padding: 0.2 })
+  })
 }
 
-const nodeTypes: NodeTypesObject = {
-  producer: ProducerNode as Component,
-  consumer: ConsumerNode as Component,
+function onConnect(params: Connection) {
+  if (!params.sourceHandle || !params.targetHandle) {
+    console.warn('❌ Missing handle IDs in connection:', params)
+    return
+  }
+
+  const sourceNode = projectStore.nodeById(params.source)
+  const output = sourceNode?.outputs?.find(o => o.id === params.sourceHandle)
+
+  if (!output) {
+    console.warn('⚠️ Could not find matching output for handle:', params.sourceHandle)
+    return
+  }
+
+  projectStore.upsertEdge({
+    id: `edge-${Date.now()}`,
+    source: params.source,
+    sourceHandle: params.sourceHandle,
+    target: params.target,
+    targetHandle: params.targetHandle,
+    resourceId: output.resourceId,
+    enabled: true
+  })
 }
 
 type OutputResource = {
@@ -55,7 +150,29 @@ type OutputResource = {
   perCycle: number
 }
 
-function validateResourceFlow(nodes: Node[], edges: Edge[]) {
+type ExtendedNode = FlowNode & {
+  type: string
+  data: {
+    inputs?: OutputResource[]
+    outputs?: OutputResource[]
+    resources?: { id: string; name: string; defaultUnitId?: string }[]
+    statusMessages?: string[]
+    statusColor?: string
+  }
+}
+
+type ExtendedEdge = FlowEdge & {
+  data?: {
+    valid?: boolean
+  }
+  style?: Record<string, any>
+  labelStyle?: Record<string, any>
+}
+
+const nodes = computed(() => projectStore.nodes as ExtendedNode[])
+const edges = computed(() => projectStore.edges as ExtendedEdge[])
+
+function validateResourceFlow(nodes: ExtendedNode[], edges: ExtendedEdge[]) {
   const nodeMap = new Map(nodes.map(node => [node.id, node]))
   const results = []
 
@@ -65,20 +182,19 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 
     if (!source || !target) continue
 
-    const outputs = (source.data.outputs ?? []) as OutputResource[]
-    const inputs = (target.data.inputs ?? []) as OutputResource[]
+    const outputs = source.data.outputs ?? []
+    const inputs = target.data.inputs ?? []
 
     for (const input of inputs) {
-      const match = outputs.find(
-        output =>
-          output.resourceId === input.resourceId &&
-          output.unitId === input.unitId &&
-          output.perCycle >= input.perCycle
+      const match = outputs.find((output: OutputResource) =>
+        output.resourceId === input.resourceId &&
+        output.unitId === input.unitId &&
+        output.perCycle >= input.perCycle
       )
 
       results.push({
         edgeId: edge.id,
-        target: edge.target, // link result to consumer node
+        target: edge.target,
         resourceId: input.resourceId,
         valid: !!match,
         message: match
@@ -91,10 +207,75 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
   return results
 }
 
-watchEffect(() => {
-  const results = validateResourceFlow(props.nodes, props.edges)
+const validationResults = computed(() =>
+  validateResourceFlow(nodes.value, edges.value)
+)
 
-  for (const node of props.nodes) {
+const balanceMap = computed(() => projectStore.balanceMap)
+
+const balanceStatusMap = computed(() => {
+  const map: Record<string, string> = {}
+
+  for (const node of nodes.value) {
+    if (node.type !== 'smart') continue
+
+    const entries = balanceMap.value.filter(b => b.nodeId === node.id)
+
+    if (entries.length === 0) {
+      map[node.id] = 'missing'
+      continue
+    }
+
+    let totalSupplied = 0
+    let totalRequired = 0
+
+    for (const entry of entries) {
+      totalSupplied += entry.supplied
+      totalRequired += entry.required
+    }
+
+    if (totalSupplied === totalRequired) map[node.id] = 'exact'
+    else if (totalSupplied > totalRequired) map[node.id] = 'over'
+    else if (totalSupplied < totalRequired) map[node.id] = 'under'
+    else map[node.id] = 'valid'
+
+    console.log(
+      'Node:', node.id,
+      'Supplied:', totalSupplied,
+      'Required:', totalRequired,
+      'Status:', map[node.id]
+    )
+  }
+
+  return map
+})
+
+function getUnitsForResource(resourceId: string): string[] {
+  const resource = projectStore.current.resources.find(r => r.id === resourceId)
+  return resource ? [resource.defaultUnitId ?? ''] : []
+}
+
+function handleResourceChange(nodeId: string, inputIndex: number) {
+  const node = projectStore.nodeById(nodeId)
+  if (!node || !node.data?.inputs) return
+
+  const selectedResourceId = node.data.inputs[inputIndex].resourceId
+  const resource = node.data.resources?.find(r => r.id === selectedResourceId)
+
+  if (resource) {
+    node.data.inputs[inputIndex].unitId = resource.defaultUnitId ?? ''
+  }
+}
+
+watchEffect(() => {
+  const results = validationResults.value
+
+  for (const node of nodes.value) {
+    if (node.type === 'smart') {
+      const status = balanceStatusMap.value[node.id]
+      console.log(`🔍 SmartNode ${node.id} balance status:`, status)
+    }
+
     if (node.type === 'consumer') {
       const nodeResults = results.filter(r => r.target === node.id)
       const messages = nodeResults.map(r => r.message)
@@ -106,7 +287,7 @@ watchEffect(() => {
     }
   }
 
-  for (const edge of props.edges) {
+  for (const edge of edges.value) {
     const edgeResults = results.filter(r => r.edgeId === edge.id)
     const isValid = edgeResults.every(r => r.valid)
 
@@ -125,21 +306,43 @@ watchEffect(() => {
     }
   }
 })
-
-
-
 </script>
 
 
 
 <style scoped>
+.editor-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
 .canvas-wrapper {
   flex: 1;
-  height: 100vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .fill {
   width: 100%;
   height: 100%;
 }
+
+.flow-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.edge-label {
+  padding: 2px 6px;
+  background: #eef;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: help;
+  white-space: nowrap;
+}
+
 </style>

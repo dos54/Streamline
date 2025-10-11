@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
+import FloatingVue from 'floating-vue'
+import 'floating-vue/dist/style.css'
 
 import App from './App.vue'
 import router from './router'
@@ -8,10 +10,10 @@ import { db } from './db/dexie'
 
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
-
 import '@/styles/main.css'
 
 const head = createHead()
+const pinia = createPinia()
 
 // Seed Dexie with a demo project, then mount the app
 ;(async () => {
@@ -69,10 +71,10 @@ const head = createHead()
     edges: [],
   })
 
-  // ✅ Now mount the app
   const app = createApp(App)
-  app.use(createPinia())
+  app.use(pinia)
   app.use(router)
   app.use(head)
+  app.use(FloatingVue) // ✅ Tooltip plugin installed
   app.mount('#app')
 })()

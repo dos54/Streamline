@@ -16,7 +16,13 @@
             "direction": "ltr",
             "cycleTime": 1,
             "inputs": [],
-            "outputs": []
+            "outputs": [
+              {
+                "resourceId": "water",
+                "unitId": "liters",
+                "perCycle": 2
+              }
+            ]
           }
         },
         {
@@ -29,7 +35,40 @@
           "defaultData": {
             "label": "New Consumer",
             "direction": "ltr",
-            "inputs": []
+            "inputs": [
+              {
+                "resourceId": "steam",
+                "unitId": "liters",
+                "perCycle": 1
+              }
+            ]
+          }
+        },
+        {
+          "id": "smart-node",
+          "type": "smart",
+          "name": "Smart Node",
+          "description": "A node that transforms inputs into outputs",
+          "icon": "⚙️",
+          "color": "#2196f3",
+          "defaultData": {
+            "label": "New SmartNode",
+            "direction": "ltr",
+            "cycleTime": 1,
+            "inputs": [
+              {
+                "resourceId": "water",
+                "unitId": "liters",
+                "perCycle": 1
+              }
+            ],
+            "outputs": [
+              {
+                "resourceId": "steam",
+                "unitId": "liters",
+                "perCycle": 1
+              }
+            ]
           }
         }
       ]

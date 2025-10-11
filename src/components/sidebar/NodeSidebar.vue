@@ -28,16 +28,24 @@
         </div>
       </div>
     </div>
+
+    <!-- ✅ Action buttons at the bottom -->
+    <div class="sidebar-actions">
+      <button @click="$emit('show-import')" class="sidebar-button">📥 Show Import Panel</button>
+      <button @click="$emit('reset-canvas')" class="sidebar-button">🧹 Reset Canvas</button>
+    </div>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 
+// ✅ Expanded type to include 'smart', 'producer', 'consumer'
 type NodeType = {
   id: string
-  type: 'machine' | 'source' | 'sink'
+  type: 'machine' | 'source' | 'sink' | 'smart' | 'producer' | 'consumer'
   name: string
   description: string
   icon: string
@@ -59,12 +67,21 @@ const nodeData = ref<NodeData>({ categories: [] })
 
 function onDragStart(event: DragEvent, node: NodeType) {
   if (event.dataTransfer) {
-    event.dataTransfer.setData('application/vueflow', JSON.stringify(node))
+    const payload = {
+      type: node.type,
+      data: node.defaultData
+    }
+    event.dataTransfer.setData('application/vueflow', JSON.stringify(payload))
     event.dataTransfer.effectAllowed = 'move'
+    console.log('🎯 Dragging:', JSON.stringify(payload, null, 2))
   }
 }
 
+
+
+
 onMounted(() => {
+  console.log('✅ NodeSidebar mounted')
   nodeData.value = nodeTypesData as NodeData
 })
 </script>
@@ -174,4 +191,31 @@ onMounted(() => {
   cursor: grabbing;
   opacity: 0.7;
 }
+
+.sidebar-actions {
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-button {
+  padding: 0.5em 1em;
+  background-color: #007bff; /* Primary blue */
+  color: white;
+  border: none;
+  border-radius: 6px; /* Rounded corners */
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-button:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+
 </style>

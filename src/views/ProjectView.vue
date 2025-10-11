@@ -1,6 +1,6 @@
 <template>
   <div v-if="projectStore.current" @dragover="onDragOver" @drop="onDrop">
-    <CanvasView :nodes="projectStore.nodes" :edges="projectStore.edges" @connect="onConnect"/>
+    <CanvasView :nodes="projectStore.nodes" :edges="projectStore.edges" @connect="onConnect" />
   </div>
   <div v-else class="loading">
     <span class="spinner"></span>
@@ -18,54 +18,93 @@ import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/project.store'
 import type { GraphNode } from '@/types/graphNode'
 
+type ResourceFlow = {
+  id?: string
+  resourceId: string
+  unitId: string
+  perCycle: number
+}
+
 const route = useRoute()
 const projectStore = useProjectStore()
+const current = projectStore.current
 
-const { addNodes, addEdges, screenToFlowCoordinate, getNodeTypes, getNodes} = useVueFlow()
+const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
+
+let sourceId = ''
+let targetId = ''
 
 function onDrop(event: DragEvent) {
   const newNode = onDropHandler(event, screenToFlowCoordinate)
-  if (newNode) {
-    // convert to GraphNode type before upserting
-    const newGraphNode = convertNodeToGraphNode(newNode) 
+  console.log('📦 Dropped node:', newNode)
+  console.log('🧠 Injected SmartNode resources:', newNode?.data?.resources)
 
+  if (newNode) {
+    const newGraphNode = convertNodeToGraphNode(newNode)
     projectStore.upsertNode(newGraphNode)
 
+    // ✅ Trigger validation after injection
+    projectStore.validateResourceFlow()
   }
 }
 
 function convertNodeToGraphNode(node: Node): GraphNode {
+  const safeType = (node.type === 'smart' || node.type === 'producer' || node.type === 'consumer')
+    ? node.type
+    : 'smart'
+
+  const safeMode = safeType === 'smart' ? 'transformer' : safeType
+
   return {
     id: node.id,
-    type: node.type === 'consumer' ? 'sink' : 'source',
-    name: node.data?.label, // use label as name
-    enabled: false, // false by default
-    position: {
-      x: node.position.x,
-      y: node.position.y,
-    },
-    count: 0, // init as zero 
-    cycleTime: node.type === 'producer' ? node?.data?.cycleTime : 0,
-    inputs: [{
-      id: node.data?.inputs[0]?.resourceId ?? 'input-1',
-      perCycle: node?.data?.inputs[0]?.perCycle ?? 1,
-      consumptionChance: node.type === 'consumer' ? 1 : 0, // no chance for producer
-      label: node.data?.label,
-      unitId: node.data?.inputs[0]?.resourceId,
-    }],
-    outputs: [{
-      id: 'output-1', perCycle: node?.data?.inputs[0]?.perCycle ?? 1, consumptionChance: node.type === 'consumer' ? 1 : 0,
-    }]
-  } 
+    type: safeType,
+    name: String(node.data?.label ?? 'Unnamed Node'),
+    enabled: true,
+    position: node.position,
+    count: 1,
+    cycleTime: typeof node.data?.cycleTime === 'number' ? node.data.cycleTime : 1,
+    mode: safeMode,
+    inputs: Array.isArray(node.data?.inputs)
+      ? node.data.inputs.map((input: ResourceFlow) => ({
+        resourceId: input.resourceId,
+        unitId: input.unitId,
+        perCycle: input.perCycle
+      }))
+      : [],
+    outputs: Array.isArray(node.data?.outputs)
+      ? node.data.outputs.map((output: ResourceFlow) => ({
+        id: output.id ?? output.resourceId,
+        resourceId: output.resourceId,
+        unitId: output.unitId,
+        perCycle: output.perCycle
+      }))
+      : [],
+    tags: [],
+    ui: {},
+    data: {
+      resources: node.data?.resources ?? [],
+      statusMessages: [],
+      statusColor: '#999'
+    }
+  }
 }
 
 function onConnect(params: Connection) {
   projectStore.upsertEdge({
-    ...params, source: params.source, target: params.target, sourceHandle: '', targetHandle: '',
-    id: '',
-    enabled: false
+    id: 'edge-1',
+    source: sourceId,
+    target: targetId,
+    sourceHandle: 'output-0',
+    targetHandle: 'input-0',
+    resourceId: 'water',
+    enabled: true
   })
+
+  console.log('✅ Connected edge between', sourceId, '→', targetId)
+
+  // ✅ Trigger validation after edge creation
+  projectStore.validateResourceFlow()
 }
 
 onMounted(() => {
@@ -79,9 +118,34 @@ onMounted(() => {
 })
 
 watchEffect(() => {
-  console.log('Project loaded?', !!projectStore.current)
-  console.log('Units:', projectStore.units)
-  console.log('Resources:', projectStore.resources)
+  if (projectStore.projectLoaded) {
+    console.log('Project loaded?', !!projectStore.current)
+    console.log('Units:', projectStore.units)
+    console.log('Resources:', projectStore.resources)
+
+    sourceId = projectStore.nodes[0]?.id ?? 'node-1'
+    targetId = projectStore.nodes[1]?.id ?? 'node-2'
+
+    console.log('Available nodes:', projectStore.nodes.map(n => n.id))
+
+    const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
+    if (!edgeExists) {
+      projectStore.edges.push({
+        id: 'edge-1',
+        source: sourceId,
+        target: targetId,
+        sourceHandle: 'output-0',
+        targetHandle: 'input-0',
+        resourceId: 'water',
+        enabled: true
+      })
+
+      console.log('✅ Injected edge between', sourceId, '→', targetId)
+
+      // ✅ Trigger validation after edge injection
+      projectStore.validateResourceFlow()
+    }
+  }
 })
 </script>
 
