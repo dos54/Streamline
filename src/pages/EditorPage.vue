@@ -9,14 +9,24 @@ import { useHead } from '@unhead/vue'
 import useDragAndDrop from '@/useDnD'
 import { useProjectStore } from '@/stores/project.store'
 
+
+
 useHead({ title: 'Editor' })
 
 const projectStore = useProjectStore()
 const showImportPanel = ref(false)
 
-function handleInject(nodes: any[]) {
+function handleInject(payload: { nodes: any[]; edges: any[] }) {
+  const { nodes, edges } = payload
   projectStore.injectNodes(nodes)
+
+  // ✅ Manually set edges if injectEdges or setGraph doesn't exist
+  projectStore.injectEdges(edges) // ✅ Safe mutation
+
 }
+
+
+
 
 function handleClear() {
   projectStore.clearNodes()

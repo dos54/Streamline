@@ -5,12 +5,27 @@
         <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
           :drag-and-drop="false" @pane-ready="handlePaneReady" @connect="onConnect" class="fill">
           <Background variant="dots" :gap="20" :size="1" />
+
+          <!-- Tooltip-enhanced edge labels -->
+          <template #edge-label="{ data }">
+            <VTooltip placement="top">
+              <template #activator>
+                <span class="edge-label">{{ data.edge.label }}</span>
+              </template>
+              <span>
+                <strong>Resource:</strong> {{ data.edge.resourceId ?? 'Unknown' }}<br />
+                <strong>Unit:</strong> {{ data.edge.unitId ?? '?' }}
+              </span>
+            </VTooltip>
+          </template>
         </VueFlow>
+
         <CanvasOverlay />
       </div>
     </div>
   </div>
 </template>
+
 
 
 
@@ -65,7 +80,7 @@ function handleDrop(event: DragEvent) {
   // ✅ Inject resources into droppedNode.data.data BEFORE conversion
   droppedNode.data.data = {
     ...(droppedNode.data.data ?? {}),
-    resources: projectStore.resources
+    resources: projectStore.current.resources
   }
 
   // 🧠 Ensure type is always defined
@@ -79,22 +94,22 @@ function handleDrop(event: DragEvent) {
       outputs: [],
       resources: []
     }
-    }
+  }
 
-// 🧪 Normalize and inject
-const graphNode = convertNodeToGraphNode(safeNode)
-console.log('🧪 Injected resources into graphNode:', graphNode.data?.resources)
+  // 🧪 Normalize and inject
+  const graphNode = convertNodeToGraphNode(safeNode)
+  console.log('🧪 Injected resources into graphNode:', graphNode.data?.resources)
 
 
-  if(projectStore.nodes.some(n => n.id === graphNode.id)) {
-      console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
-  return
-}
+  if (projectStore.nodes.some(n => n.id === graphNode.id)) {
+    console.warn('⚠️ Duplicate node ID detected, skipping:', graphNode.id)
+    return
+  }
 
-projectStore.upsertNode(graphNode)
-projectStore.validateResourceFlow()
+  projectStore.upsertNode(graphNode)
+  projectStore.validateResourceFlow()
 
-console.log('📦 Injected node:', graphNode)
+  console.log('📦 Injected node:', graphNode)
 }
 
 
@@ -223,13 +238,20 @@ const balanceStatusMap = computed(() => {
     else if (totalSupplied > totalRequired) map[node.id] = 'over'
     else if (totalSupplied < totalRequired) map[node.id] = 'under'
     else map[node.id] = 'valid'
+
+    console.log(
+      'Node:', node.id,
+      'Supplied:', totalSupplied,
+      'Required:', totalRequired,
+      'Status:', map[node.id]
+    )
   }
 
   return map
 })
 
 function getUnitsForResource(resourceId: string): string[] {
-  const resource = projectStore.resources.find(r => r.id === resourceId)
+  const resource = projectStore.current.resources.find(r => r.id === resourceId)
   return resource ? [resource.defaultUnitId ?? ''] : []
 }
 
@@ -313,4 +335,14 @@ watchEffect(() => {
   height: 100%;
   position: relative;
 }
+
+.edge-label {
+  padding: 2px 6px;
+  background: #eef;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: help;
+  white-space: nowrap;
+}
+
 </style>

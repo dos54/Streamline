@@ -1,4 +1,7 @@
 import type { GraphNode } from '@/schemas/graphNode.schema'
+import { useProjectStore } from '@/stores/project.store'
+
+//const projectStore = useProjectStore()
 
 type DroppedNode = {
   id: string

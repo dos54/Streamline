@@ -9,12 +9,7 @@
     <div class="json-import">
       <h2>Import Node JSON</h2>
 
-      <textarea
-        v-model="jsonText"
-        placeholder="Paste your JSON here"
-        rows="10"
-        class="json-textarea"
-      ></textarea>
+      <textarea v-model="jsonText" placeholder="Paste your JSON here" rows="10" class="json-textarea"></textarea>
 
       <input type="file" accept=".json" @change="handleFileUpload" />
       <button @click="validateJson">Validate</button>
@@ -35,10 +30,7 @@
         </ul>
       </div>
 
-      <div
-        v-if="errorMessage && (!validationResult || !validationResult.valid)"
-        style="color: red; margin-top: 0.5rem"
-      >
+      <div v-if="errorMessage && (!validationResult || !validationResult.valid)" style="color: red; margin-top: 0.5rem">
         {{ errorMessage }}
       </div>
     </div>
@@ -50,9 +42,13 @@ import { ref } from 'vue'
 import { useVueFlow } from '@vue-flow/core'
 import { validateNodeJson } from '../utils/nodeValidator'
 import type { ZodIssue } from 'zod'
+import { GraphEdgeZ } from '@/schemas/graphEdge.schema'
+import { z } from 'zod'
+
+type GraphEdge = z.infer<typeof GraphEdgeZ>
 
 const emit = defineEmits<{
-  (e: 'inject', nodes: any[]): void
+  (e: 'inject', payload: { nodes: any[]; edges: GraphEdge[] }): void
   (e: 'clear'): void
 }>()
 
@@ -66,18 +62,43 @@ const validationResult = ref<{
   errors: ZodIssue[]
 } | null>(null)
 
+function enrichEdges(rawEdges: any[], nodes: any[]): GraphEdge[] {
+  return rawEdges.map((e): GraphEdge => {
+    const sourceNode = nodes.find(n => n.id === e.source)
+    const output = sourceNode?.data?.outputs?.find((o: { resourceId: string; unitId?: string }) => o.resourceId === e.sourceHandle)
+
+
+    const resourceId = output?.resourceId ?? e.sourceHandle
+    const unitId = output?.unitId ?? ''
+
+    return {
+      ...e,
+      resourceId,
+      unitId,
+      label: `${resourceId} (${unitId})`,
+      enabled: true
+    }
+  })
+}
+
 function validateJson() {
   try {
     console.log('Raw input:', jsonText.value)
     const parsed = JSON.parse(jsonText.value)
-    const result = validateNodeJson(parsed)
+
+    const nodes = Array.isArray(parsed) ? parsed : parsed.nodes
+    const rawEdges = Array.isArray(parsed) ? [] : parsed.edges ?? []
+    const edges = enrichEdges(rawEdges, nodes)
+
+    const result = validateNodeJson(nodes)
     validationResult.value = result
 
     if (result.valid) {
       errorMessage.value = ''
-      emit('inject', parsed)
+      console.log('✅ Injecting nodes:', nodes)
+      console.log('🔗 Injecting edges:', edges)
+      emit('inject', { nodes, edges })
 
-      // ✅ Force canvas repaint after injection
       setTimeout(() => {
         fitView({ padding: 0.2 })
       }, 100)
@@ -93,7 +114,7 @@ function validateJson() {
 }
 
 function clearCanvas() {
-  console.log('Clear button clicked')
+  console.log('🧹 Clear button clicked')
   emit('clear')
 }
 

@@ -25,12 +25,15 @@ type ResourceFlow = {
   perCycle: number
 }
 
-
 const route = useRoute()
 const projectStore = useProjectStore()
+const current = projectStore.current
 
 const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
+
+let sourceId = ''
+let targetId = ''
 
 function onDrop(event: DragEvent) {
   const newNode = onDropHandler(event, screenToFlowCoordinate)
@@ -69,7 +72,6 @@ function convertNodeToGraphNode(node: Node): GraphNode {
         perCycle: input.perCycle
       }))
       : [],
-
     outputs: Array.isArray(node.data?.outputs)
       ? node.data.outputs.map((output: ResourceFlow) => ({
         id: output.id ?? output.resourceId,
@@ -78,7 +80,6 @@ function convertNodeToGraphNode(node: Node): GraphNode {
         perCycle: output.perCycle
       }))
       : [],
-
     tags: [],
     ui: {},
     data: {
@@ -89,18 +90,18 @@ function convertNodeToGraphNode(node: Node): GraphNode {
   }
 }
 
-
-
 function onConnect(params: Connection) {
   projectStore.upsertEdge({
-    ...params,
-    source: params.source,
-    target: params.target,
-    sourceHandle: '',
-    targetHandle: '',
-    id: '',
-    enabled: false
+    id: 'edge-1',
+    source: sourceId,
+    target: targetId,
+    sourceHandle: 'output-0',
+    targetHandle: 'input-0',
+    resourceId: 'water',
+    enabled: true
   })
+
+  console.log('✅ Connected edge between', sourceId, '→', targetId)
 
   // ✅ Trigger validation after edge creation
   projectStore.validateResourceFlow()
@@ -122,35 +123,28 @@ watchEffect(() => {
     console.log('Units:', projectStore.units)
     console.log('Resources:', projectStore.resources)
 
-    //const sourceId = 'test-node'
-    //const targetId = 'consumer-node'
-
-
-    const sourceId = 'node-1' // or dynamically from your logic
-    const targetId = 'node-2' // or dynamically from your logic
+    sourceId = projectStore.nodes[0]?.id ?? 'node-1'
+    targetId = projectStore.nodes[1]?.id ?? 'node-2'
 
     console.log('Available nodes:', projectStore.nodes.map(n => n.id))
 
-   
+    const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
+    if (!edgeExists) {
+      projectStore.edges.push({
+        id: 'edge-1',
+        source: sourceId,
+        target: targetId,
+        sourceHandle: 'output-0',
+        targetHandle: 'input-0',
+        resourceId: 'water',
+        enabled: true
+      })
 
-const edgeExists = projectStore.edges.some(e => e.id === 'edge-1')
-if (!edgeExists) {
-  projectStore.edges.push({
-    id: 'edge-1',
-    source: sourceId,
-    target: targetId,
-    sourceHandle: 'output-0',
-    targetHandle: 'input-0',
-    resourceId: 'water',
-    enabled: true
-  })
+      console.log('✅ Injected edge between', sourceId, '→', targetId)
 
-  console.log('✅ Injected edge between', sourceId, '→', targetId)
-
-  // ✅ Trigger validation after edge injection
-  projectStore.validateResourceFlow()
-}
-
+      // ✅ Trigger validation after edge injection
+      projectStore.validateResourceFlow()
+    }
   }
 })
 </script>

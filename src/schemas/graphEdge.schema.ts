@@ -11,5 +11,7 @@ export const GraphEdgeZ = z.object({
   targetHandle: z.string().min(1),
   waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
-  resourceId: z.string().optional()
+  resourceId: z.string().optional(),
+  unitId: z.string().optional() 
 })
+

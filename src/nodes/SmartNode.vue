@@ -8,9 +8,14 @@
 
 
 
-    <div class="node-type-badge inline-block px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 mb-2">
-      {{ nodeType }}
+    <div v-if="props.data.statusTypes?.length" class="status-icons flex gap-1 mb-2">
+      <span v-for="type in props.data.statusTypes" :key="type" :class="['status-icon', type.split(':')[0]]"
+        :title="formatStatusTooltip(type)">
+        {{ getStatusIcon(type) }}
+      </span>
     </div>
+
+
 
 
 
@@ -20,17 +25,13 @@
     </div>
 
 
-    
+
     <div v-if="props.statusTypes?.length" class="status-icons flex gap-1 mb-4">
-  <span
-    v-for="type in props.statusTypes"
-    :key="type"
-    :class="['status-icon', type.split(':')[0]]"
-    :title="formatStatusTooltip(type)"
-  >
-    {{ getStatusIcon(type) }}
-  </span>
-</div>
+      <span v-for="type in props.statusTypes" :key="type" :class="['status-icon', type.split(':')[0]]"
+        :title="formatStatusTooltip(type)">
+        {{ getStatusIcon(type) }}
+      </span>
+    </div>
 
 
     <!-- ✅ Test Dropdown Block -->
@@ -231,9 +232,9 @@ function getStatusIcon(type: string): string {
   const prefix = type.split(':')[0]
   return prefix === 'exact' ? '✅'
     : prefix === 'over' ? '🔼'
-    : prefix === 'under' ? '⚠️'
-    : prefix === 'missing' ? '❌'
-    : '❓'
+      : prefix === 'under' ? '⚠️'
+        : prefix === 'missing' ? '❌'
+          : '❓'
 }
 
 function formatStatusTooltip(type: string): string {
@@ -242,9 +243,9 @@ function formatStatusTooltip(type: string): string {
 
   return prefix === 'exact' ? `✅ ${resource} is balanced`
     : prefix === 'over' ? `🔼 ${resource} is oversupplied`
-    : prefix === 'under' ? `⚠️ ${resource} is undersupplied`
-    : prefix === 'missing' ? `❌ ${resource} is missing`
-    : `❓ Unknown status for ${resource}`
+      : prefix === 'under' ? `⚠️ ${resource} is undersupplied`
+        : prefix === 'missing' ? `❌ ${resource} is missing`
+          : `❓ Unknown status for ${resource}`
 }
 
 
@@ -263,12 +264,12 @@ const nodeType = computed(() => {
   const hasInputs = props.data.inputs?.length ?? 0
   const hasOutputs = props.data.outputs?.length ?? 0
 
-  if (props.data.statusTypes === undefined) return 'Unvalidated'
   if (hasInputs && !hasOutputs) return 'Consumer'
   if (!hasInputs && hasOutputs) return 'Producer'
   if (hasInputs && hasOutputs) return 'Smart'
   return 'Unconfigured'
 })
+
 
 
 console.log('✅ SmartNode resources:', props.data.resources);
