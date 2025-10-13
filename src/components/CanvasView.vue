@@ -28,8 +28,8 @@ import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 
 const props = defineProps<{
-  nodes: Node[],
-  edges: Edge[],
+  nodes: Node[]
+  edges: Edge[]
 }>()
 
 const emit = defineEmits(['connect'])
@@ -56,7 +56,7 @@ type OutputResource = {
 }
 
 function validateResourceFlow(nodes: Node[], edges: Edge[]) {
-  const nodeMap = new Map(nodes.map(node => [node.id, node]))
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]))
   const results = []
 
   for (const edge of edges) {
@@ -70,10 +70,10 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 
     for (const input of inputs) {
       const match = outputs.find(
-        output =>
+        (output) =>
           output.resourceId === input.resourceId &&
           output.unitId === input.unitId &&
-          output.perCycle >= input.perCycle
+          output.perCycle >= input.perCycle,
       )
 
       results.push({
@@ -83,7 +83,7 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
         valid: !!match,
         message: match
           ? `✅ ${input.resourceId} is sufficiently supplied`
-          : `⚠️ ${input.resourceId} is missing or under-supplied`
+          : `⚠️ ${input.resourceId} is missing or under-supplied`,
       })
     }
   }
@@ -96,9 +96,9 @@ watchEffect(() => {
 
   for (const node of props.nodes) {
     if (node.type === 'consumer') {
-      const nodeResults = results.filter(r => r.target === node.id)
-      const messages = nodeResults.map(r => r.message)
-      const allValid = nodeResults.every(r => r.valid)
+      const nodeResults = results.filter((r) => r.target === node.id)
+      const messages = nodeResults.map((r) => r.message)
+      const allValid = nodeResults.every((r) => r.valid)
       const statusColor = allValid ? '#4caf50' : '#f44336'
 
       node.data.statusMessages = messages
@@ -107,30 +107,25 @@ watchEffect(() => {
   }
 
   for (const edge of props.edges) {
-    const edgeResults = results.filter(r => r.edgeId === edge.id)
-    const isValid = edgeResults.every(r => r.valid)
+    const edgeResults = results.filter((r) => r.edgeId === edge.id)
+    const isValid = edgeResults.every((r) => r.valid)
 
     edge.data = edge.data || {}
     edge.data.valid = isValid
 
     edge.style = {
       stroke: isValid ? '#4caf50' : '#f44336',
-      strokeWidth: 2
+      strokeWidth: 2,
     }
 
     edge.labelStyle = {
       fill: isValid ? '#4caf50' : '#f44336',
       fontWeight: 'bold',
-      fontSize: 12
+      fontSize: 12,
     }
   }
 })
-
-
-
 </script>
-
-
 
 <style scoped>
 .canvas-wrapper {

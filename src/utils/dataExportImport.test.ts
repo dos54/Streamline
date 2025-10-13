@@ -3,7 +3,7 @@ import {
   importData,
   validateImportData,
   type ExportData,
-  type ImportResult
+  type ImportResult,
 } from './dataExportImport'
 
 describe('dataExportImport types and validation', () => {
@@ -24,7 +24,7 @@ describe('dataExportImport types and validation', () => {
     const futureVersionData = {
       formatVersion: '2.0.0',
       exportedAt: new Date().toISOString(),
-      projects: []
+      projects: [],
     }
     const result = await importData(JSON.stringify(futureVersionData))
     expect(result.success).toBe(false)
@@ -35,7 +35,7 @@ describe('dataExportImport types and validation', () => {
     const validExportData: ExportData = {
       formatVersion: '1.0.0',
       exportedAt: new Date().toISOString(),
-      projects: []
+      projects: [],
     }
 
     const result = await validateImportData(JSON.stringify(validExportData))
@@ -48,9 +48,9 @@ describe('dataExportImport types and validation', () => {
       success: true,
       projectsImported: 1,
       projectsSkipped: 0,
-      errors: []
+      errors: [],
     }
-    
+
     expect(result.success).toBe(true)
     expect(typeof result.projectsImported).toBe('number')
     expect(typeof result.projectsSkipped).toBe('number')

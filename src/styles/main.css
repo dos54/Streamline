@@ -1,7 +1,14 @@
 @import './tokens.css';
 
-html, body, #app {height: 100%; margin: 0;}
-* {box-sizing: border-box;}
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+* {
+  box-sizing: border-box;
+}
 
 body {
   background-color: var(--bg);

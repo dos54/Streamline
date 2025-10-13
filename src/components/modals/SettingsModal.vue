@@ -88,7 +88,7 @@ onBeforeMount(() => window.removeEventListener('keydown', onKey))
   border-radius: 8px;
   height: 100%;
   cursor: pointer;
-  width: clamp(48px, 100%, 300px)
+  width: clamp(48px, 100%, 300px);
 }
 
 .icon {

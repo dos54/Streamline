@@ -5,11 +5,7 @@
     </div>
 
     <div class="node-categories">
-      <div
-        v-for="category in nodeData.categories"
-        :key="category.id"
-        class="category"
-      >
+      <div v-for="category in nodeData.categories" :key="category.id" class="category">
         <h4>{{ category.name }}</h4>
         <div
           v-for="node in category.nodes"
@@ -166,11 +162,11 @@ onMounted(() => {
 }
 
 /* Drag state styles */
-.sidebar-node[draggable="true"]:hover {
+.sidebar-node[draggable='true']:hover {
   cursor: grab;
 }
 
-.sidebar-node[draggable="true"]:active {
+.sidebar-node[draggable='true']:active {
   cursor: grabbing;
   opacity: 0.7;
 }
