@@ -16,7 +16,7 @@
       Flow: {{ currentDirection }} {{ directionArrow }}
     </button>
 
-    <div class="status-section" v-if="data.statusMessages?.length">
+    <div class="status-section" v-if="data?.statusMessages?.length">
       <h3>Status</h3>
       <ul>
         <li v-for="(msg, index) in data.statusMessages" :key="index">
@@ -25,15 +25,13 @@
       </ul>
     </div>
 
-    <div v-if="!isNodeValid" class="node-warning">
-      ⚠️ This node has invalid inputs
-    </div>
+    <div v-if="!isNodeValid" class="node-warning">⚠️ This node has invalid inputs</div>
 
     <div class="io-wrapper" :class="currentDirection">
       <div class="inputs-section">
         <h3>{{ currentDirection === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div v-for="(input, index) in data.inputs" :key="index" class="input-row">
+          <div v-for="(input, index) in data?.inputs" :key="index" class="input-row">
             <label>Input {{ index + 1 }}</label>
 
             <select v-model="input.resourceId" @change="syncUnit(input)">
@@ -43,10 +41,7 @@
               </option>
             </select>
 
-            <select
-              v-model="input.unitId"
-              :class="{ 'auto-filled': wasAutoFilled(input) }"
-            >
+            <select v-model="input.unitId" :class="{ 'auto-filled': wasAutoFilled(input) }">
               <option value="">Select unit</option>
               <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
                 {{ unit.label }}
@@ -75,9 +70,6 @@
   </div>
 </template>
 
-
-
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
@@ -102,7 +94,7 @@ const props = defineProps<{
 
 const data = props.data
 
-const editableLabel = ref(data.label)
+const editableLabel = ref(data?.label)
 function updateLabel() {
   data.label = editableLabel.value
 }
@@ -120,29 +112,25 @@ function isValidResource(r: { resourceId: string; perCycle: number }) {
   return r.resourceId !== '' && r.perCycle > 0
 }
 
-const isNodeValid = computed(() =>
-  data.inputs.every(isValidResource)
-)
+const isNodeValid = computed(() => data?.inputs?.every(isValidResource))
 
 //  Direction toggle logic
-const currentDirection = ref(data.direction || 'ltr')
-const directionArrow = computed(() =>
-  currentDirection.value === 'rtl' ? '←' : '→'
-)
+const currentDirection = ref(data?.direction || 'ltr')
+const directionArrow = computed(() => (currentDirection.value === 'rtl' ? '←' : '→'))
 function toggleDirection() {
   currentDirection.value = currentDirection.value === 'ltr' ? 'rtl' : 'ltr'
   data.direction = currentDirection.value
 }
 
 const inputPosition = computed(() =>
-  currentDirection.value === 'rtl' ? Position.Right : Position.Left
+  currentDirection.value === 'rtl' ? Position.Right : Position.Left,
 )
 const outputPosition = computed(() =>
-  currentDirection.value === 'rtl' ? Position.Left : Position.Right
+  currentDirection.value === 'rtl' ? Position.Left : Position.Right,
 )
 
 // ✨ Auto-fill unitId when resource is selected
-function syncUnit(input: typeof data.inputs[number]) {
+function syncUnit(input: (typeof data.inputs)[number]) {
   if (!input.resourceId) return
 
   const resource = project.resources?.find((r) => r.id === input.resourceId)
@@ -152,7 +140,7 @@ function syncUnit(input: typeof data.inputs[number]) {
 }
 
 // 🧠 Detect auto-filled unit for styling
-function wasAutoFilled(input: typeof data.inputs[number]) {
+function wasAutoFilled(input: (typeof data.inputs)[number]) {
   const resource = project.resources?.find((r) => r.id === input.resourceId)
   return resource?.defaultUnitId === input.unitId
 }
@@ -162,20 +150,16 @@ const resourceOptions = computed(() =>
   (project.resources ?? []).map((r) => ({
     id: r.id,
     name: r.name,
-  }))
+  })),
 )
 
 const unitOptions = computed(() =>
   ((project.units ?? []) as Unit[]).map((u) => ({
     id: u.id,
     label: `${u.name} (${u.symbol})`,
-  }))
+  })),
 )
 </script>
-
-
-
-
 
 <style scoped>
 .consumer-node {
@@ -189,7 +173,7 @@ const unitOptions = computed(() =>
   transition: border-color 0.3s ease;
 }
 
-.consumer-node[style*="#4caf50"] {
+.consumer-node[style*='#4caf50'] {
   box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
 }
 
@@ -334,6 +318,4 @@ const unitOptions = computed(() =>
 .direction-toggle:hover {
   background: #b2dfdb;
 }
-
-
 </style>

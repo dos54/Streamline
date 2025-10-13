@@ -16,9 +16,7 @@
       Flow: {{ direction }} {{ directionArrow }}
     </button>
 
-    <div v-if="!isNodeValid" class="node-warning">
-      ⚠️ This node has invalid inputs or outputs
-    </div>
+    <div v-if="!isNodeValid" class="node-warning">⚠️ This node has invalid inputs or outputs</div>
 
     <div class="timing-section">
       <h3>Timing</h3>
@@ -94,7 +92,6 @@
               :id="`output-${output.id}`"
               class="row-handle"
             />
-              
 
             <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
@@ -132,10 +129,6 @@
   </div>
 </template>
 
-
-
-
-
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
@@ -170,22 +163,16 @@ const props = defineProps<{
 
 const data = props.data
 
-const editableLabel = ref(data.label)
+const editableLabel = ref(data?.label)
 function updateLabel() {
   data.label = editableLabel.value
 }
 
 // 🔁 Direction toggle logic
-const direction = ref(data.direction ?? 'ltr')
-const directionArrow = computed(() =>
-  direction.value === 'rtl' ? '←' : '→'
-)
-const inputPosition = computed(() =>
-  direction.value === 'rtl' ? Position.Right : Position.Left
-)
-const outputPosition = computed(() =>
-  direction.value === 'rtl' ? Position.Left : Position.Right
-)
+const direction = ref(data?.direction ?? 'ltr')
+const directionArrow = computed(() => (direction.value === 'rtl' ? '←' : '→'))
+const inputPosition = computed(() => (direction.value === 'rtl' ? Position.Right : Position.Left))
+const outputPosition = computed(() => (direction.value === 'rtl' ? Position.Left : Position.Right))
 function toggleDirection() {
   direction.value = direction.value === 'ltr' ? 'rtl' : 'ltr'
   data.direction = direction.value
@@ -218,8 +205,8 @@ function isValidResource(r: { resourceId: string; perCycle: number }) {
 }
 
 const isNodeValid = computed(() => {
-  const inputsValid = data.inputs.every(isValidResource)
-  const outputsValid = data.outputs.every(isValidResource)
+  const inputsValid = data?.inputs?.every(isValidResource)
+  const outputsValid = data?.outputs?.every(isValidResource)
   return inputsValid && outputsValid
 })
 
@@ -229,50 +216,47 @@ const connectedConsumers = ref([
   { resourceId: 'steel', required: 10 },
 ])
 
-function validateOutput(output: typeof data.outputs[number]) {
+function validateOutput(output: (typeof data.outputs)[number]) {
   if (!output.resourceId || output.perCycle <= 0) return 'invalid'
 
   const matchingConsumers = connectedConsumers.value.filter(
-    (c) => c.resourceId === output.resourceId
+    (c) => c.resourceId === output.resourceId,
   )
 
   const totalRequired = matchingConsumers.reduce((sum, c) => sum + c.required, 0)
   return output.perCycle >= totalRequired ? 'valid' : 'invalid'
 }
 
-const outputStatus = computed(() =>
-  data.outputs.map(validateOutput)
-)
+const outputStatus = computed(() => data.outputs.map(validateOutput))
 
 // ✨ Auto-fill unitId when resource is selected
-function syncUnit(output: typeof data.outputs[number]) {
+function syncUnit(output: (typeof data.outputs)[number]) {
   if (!output.resourceId) return
 
   const resource = project.resources?.find((r) => r.id === output.resourceId)
   if (resource && !output.unitId) {
-    output.unitId = resource.defaultUnitId as string ?? '' // Again, this is a bandaid fix.
+    output.unitId = (resource.defaultUnitId as string) ?? '' // Again, this is a bandaid fix.
   }
 }
 
-function wasAutoFilled(output: typeof data.outputs[number]) {
+function wasAutoFilled(output: (typeof data.outputs)[number]) {
   const resource = project.resources?.find((r) => r.id === output.resourceId)
   return resource?.defaultUnitId === output.unitId
 }
-
 
 // 📦 Resource and unit dropdowns
 const resourceOptions = computed(() =>
   (project.resources ?? []).map((r) => ({
     id: r.id,
     name: r.name,
-  }))
+  })),
 )
 
 const unitOptions = computed(() =>
   ((project.units ?? []) as Unit[]).map((u) => ({
     id: u.id,
     label: `${u.name} (${u.symbol})`,
-  }))
+  })),
 )
 
 watchEffect(() => {
@@ -281,9 +265,6 @@ watchEffect(() => {
   console.log('Units:', project.units ?? [])
 })
 </script>
-
-
-
 
 <style scoped>
 .producer-node {
@@ -296,7 +277,6 @@ watchEffect(() => {
   font-family: 'Segoe UI', sans-serif;
   transition: border-color 0.3s ease;
 }
-
 
 .header {
   font-weight: 600;
@@ -315,7 +295,6 @@ watchEffect(() => {
   margin-bottom: 0.75rem;
 }
 
-
 .direction-toggle {
   display: block;
   margin: 0 auto 1rem;
@@ -332,7 +311,6 @@ watchEffect(() => {
 .direction-toggle:hover {
   background: #b2dfdb;
 }
-
 
 .inputs-section,
 .outputs-section {
@@ -395,7 +373,6 @@ watchEffect(() => {
   color: #555;
 }
 
-
 .node-warning {
   background-color: #fff3cd;
   color: #856404;
@@ -457,6 +434,4 @@ select.auto-filled {
   border-radius: 50%;
   z-index: 10;
 }
-
-
 </style>

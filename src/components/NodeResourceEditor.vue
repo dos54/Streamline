@@ -3,12 +3,7 @@
     <label>{{ resource.name }}</label>
     <div>
       <span>Unit: {{ nodeResource.unitId }}</span>
-      <input
-        type="number"
-        v-model.number="localPerCycle"
-        @input="emitUpdate"
-        min="0"
-      />
+      <input type="number" v-model.number="localPerCycle" @input="emitUpdate" min="0" />
       <span>per cycle</span>
     </div>
   </div>
@@ -28,9 +23,12 @@ const emit = defineEmits(['update:perCycle'])
 
 const localPerCycle = ref(props.nodeResource.perCycle)
 
-watch(() => props.nodeResource.perCycle, (newVal) => {
-  localPerCycle.value = newVal
-})
+watch(
+  () => props.nodeResource.perCycle,
+  (newVal) => {
+    localPerCycle.value = newVal
+  },
+)
 
 function emitUpdate() {
   emit('update:perCycle', localPerCycle.value)

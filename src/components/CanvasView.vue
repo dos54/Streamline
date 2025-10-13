@@ -1,27 +1,25 @@
 <template>
-  <div class="editor-layout">
-    <div class="canvas-wrapper">
-      <VueFlow
-        v-model:nodes="nodes"
-        v-model:edges="edges"
-        :node-types="nodeTypes"
-        :zoom-on-scroll="true"
-        :pan-on-drag="true"
-        @pane-ready="handlePaneReady"
-        class="fill"
-      >
-        <Background variant="dots" :gap="20" :size="1" />
-      </VueFlow>
-
-      <CanvasOverlay />
-    </div>
+  <div class="canvas-wrapper">
+    <VueFlow
+      :nodes="nodes"
+      :edges="edges"
+      :node-types="nodeTypes"
+      :zoom-on-scroll="true"
+      :pan-on-drag="true"
+      @pane-ready="handlePaneReady"
+      @connect="onConnect"
+      class="fill"
+    >
+      <Background variant="dots" :gap="20" :size="1" />
+    </VueFlow>
+    <CanvasOverlay />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node as FlowNode, Edge as FlowEdge } from '@vue-flow/core'
+import type { NodeTypesObject, Node, Edge, Connection } from '@vue-flow/core'
 import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
 import { useProjectStore } from '@/stores/project.store'
@@ -31,8 +29,18 @@ import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
 
-const projectStore = useProjectStore()
-const { fitView } = useVueFlow()
+const props = defineProps<{
+  nodes: Node[]
+  edges: Edge[]
+}>()
+
+const emit = defineEmits(['connect'])
+
+function onConnect(params: Connection) {
+  emit('connect', params)
+}
+
+const { fitView, addEdges } = useVueFlow()
 
 function handlePaneReady() {
   requestAnimationFrame(() => {
@@ -52,30 +60,62 @@ type OutputResource = {
   perCycle: number
 }
 
-type ExtendedNode = FlowNode & {
-  type: string
-  data: {
-    inputs?: OutputResource[]
-    outputs?: OutputResource[]
-    resources?: { id: string; name: string; defaultUnitId?: string }[]
-    statusMessages?: string[]
-    statusColor?: string
+const edges = ref<Edge[]>([
+  {
+    id: 'e1',
+    source: 'producer-1',
+    target: 'consumer-1',
+    label: 'Electricity',
+    animated: true,
+    style: { stroke: '#999' },
+    labelStyle: { fill: '#333', fontSize: 12 }
   }
-}
+])
 
-type ExtendedEdge = FlowEdge & {
-  data?: {
-    valid?: boolean
+const nodes = ref<Node[]>([
+  {
+    id: 'producer-1',
+    type: 'producer',
+    position: { x: 100, y: 200 },
+    data: {
+      label: 'Iron Mine',
+      direction: 'ltr',
+      cycleTime: 5,
+      inputs: [
+        { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
+        { resourceId: 'steel', unitId: 'kg', perCycle: 2 }
+      ],
+outputs: [
+  { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
+  { resourceId: 'power', unitId: 'kWh', perCycle: 2 }
+]
+
+,
+      resources: [
+        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
+        { id: 'steel', name: 'Steel', defaultUnitId: 'kg' }
+      ]
+    }
+  },
+  {
+    id: 'consumer-1',
+    type: 'consumer',
+    position: { x: 400, y: 200 },
+    data: {
+      label: 'Smelter',
+      direction: 'ltr',
+      inputs: [
+        { resourceId: 'power', unitId: 'kWh', perCycle: 1 }
+      ],
+      resources: [
+        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' }
+      ]
+    }
   }
-  style?: Record<string, any>
-  labelStyle?: Record<string, any>
-}
+])
 
-const nodes = computed(() => projectStore.nodes as ExtendedNode[])
-const edges = computed(() => projectStore.edges as ExtendedEdge[])
-
-function validateResourceFlow(nodes: ExtendedNode[], edges: ExtendedEdge[]) {
-  const nodeMap = new Map(nodes.map(node => [node.id, node]))
+function validateResourceFlow(nodes: Node[], edges: Edge[]) {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]))
   const results = []
 
   for (const edge of edges) {
@@ -101,7 +141,7 @@ function validateResourceFlow(nodes: ExtendedNode[], edges: ExtendedEdge[]) {
         valid: !!match,
         message: match
           ? `✅ ${input.resourceId} is sufficiently supplied`
-          : `⚠️ ${input.resourceId} is missing or under-supplied`
+          : `⚠️ ${input.resourceId} is missing or under-supplied`,
       })
     }
   }
@@ -109,18 +149,14 @@ function validateResourceFlow(nodes: ExtendedNode[], edges: ExtendedEdge[]) {
   return results
 }
 
-const validationResults = computed(() =>
-  validateResourceFlow(nodes.value, edges.value)
-)
-
 watchEffect(() => {
-  const results = validationResults.value
+  const results = validateResourceFlow(props.nodes, props.edges)
 
-  for (const node of nodes.value) {
+  for (const node of props.nodes) {
     if (node.type === 'consumer') {
-      const nodeResults = results.filter(r => r.target === node.id)
-      const messages = nodeResults.map(r => r.message)
-      const allValid = nodeResults.every(r => r.valid)
+      const nodeResults = results.filter((r) => r.target === node.id)
+      const messages = nodeResults.map((r) => r.message)
+      const allValid = nodeResults.every((r) => r.valid)
       const statusColor = allValid ? '#4caf50' : '#f44336'
 
       node.data.statusMessages = messages
@@ -128,22 +164,22 @@ watchEffect(() => {
     }
   }
 
-  for (const edge of edges.value) {
-    const edgeResults = results.filter(r => r.edgeId === edge.id)
-    const isValid = edgeResults.every(r => r.valid)
+  for (const edge of props.edges) {
+    const edgeResults = results.filter((r) => r.edgeId === edge.id)
+    const isValid = edgeResults.every((r) => r.valid)
 
     edge.data = edge.data || {}
     edge.data.valid = isValid
 
     edge.style = {
       stroke: isValid ? '#4caf50' : '#f44336',
-      strokeWidth: 2
+      strokeWidth: 2,
     }
 
     edge.labelStyle = {
       fill: isValid ? '#4caf50' : '#f44336',
       fontWeight: 'bold',
-      fontSize: 12
+      fontSize: 12,
     }
   }
 })

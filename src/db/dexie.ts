@@ -6,7 +6,7 @@ class AppDB extends Dexie {
   constructor() {
     super('streamline-flow-db')
     this.version(1).stores({
-      projects: 'id, schemaVersion, updatedAt'
+      projects: 'id, schemaVersion, updatedAt',
     })
   }
 }
