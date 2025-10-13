@@ -26,6 +26,7 @@ import { Background } from '@vue-flow/background'
 import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
+import SmartNode from '../nodes/SmartNode.vue'
 
 const props = defineProps<{
   nodes: Node[]
@@ -38,15 +39,18 @@ function onConnect(params: Connection) {
   emit('connect', params)
 }
 
-const { fitView, addEdges } = useVueFlow()
+const { fitView, } = useVueFlow()
 
 function handlePaneReady() {
-  fitView({ padding: 0.2 })
+  requestAnimationFrame(() => {
+    fitView({ padding: 0.2 })
+  })
 }
 
 const nodeTypes: NodeTypesObject = {
   producer: ProducerNode as Component,
   consumer: ConsumerNode as Component,
+  smart: SmartNode as Component,
 }
 
 type OutputResource = {
@@ -54,6 +58,7 @@ type OutputResource = {
   unitId: string
   perCycle: number
 }
+
 
 function validateResourceFlow(nodes: Node[], edges: Edge[]) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
@@ -65,20 +70,19 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
 
     if (!source || !target) continue
 
-    const outputs = (source.data.outputs ?? []) as OutputResource[]
-    const inputs = (target.data.inputs ?? []) as OutputResource[]
+    const outputs = source.data.outputs ?? []
+    const inputs = target.data.inputs ?? []
 
     for (const input of inputs) {
-      const match = outputs.find(
-        (output) =>
-          output.resourceId === input.resourceId &&
-          output.unitId === input.unitId &&
-          output.perCycle >= input.perCycle,
+      const match = outputs.find((output: OutputResource) =>
+        output.resourceId === input.resourceId &&
+        output.unitId === input.unitId &&
+        output.perCycle >= input.perCycle
       )
 
       results.push({
         edgeId: edge.id,
-        target: edge.target, // link result to consumer node
+        target: edge.target,
         resourceId: input.resourceId,
         valid: !!match,
         message: match
@@ -128,9 +132,18 @@ watchEffect(() => {
 </script>
 
 <style scoped>
+.editor-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
 .canvas-wrapper {
   flex: 1;
-  height: 100vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .fill {

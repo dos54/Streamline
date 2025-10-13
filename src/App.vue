@@ -1,7 +1,14 @@
-<script setup lang="ts">
-import { RouterView } from 'vue-router'
-</script>
-
 <template>
-  <RouterView />
+  <div class="app-root">
+    <RouterView />
+  </div>
 </template>
+
+<style>
+.app-root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+</style>

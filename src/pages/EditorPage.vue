@@ -1,35 +1,39 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useHead } from '@unhead/vue'
 import { useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge } from '@vue-flow/core'
+import type { Node, Edge } from '@vue-flow/core'
+
 import CanvasView from '@/components/CanvasView.vue'
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
 import SettingsModal from '@/components/modals/SettingsModal.vue'
-import { useHead } from '@unhead/vue'
+import JsonImport from '@/components/JsonImport.vue'
 import useDragAndDrop from '@/useDnD'
+import { useProjectStore } from '@/stores/project.store'
+
 useHead({ title: 'Editor' })
 
-const { addNodes, addEdges, screenToFlowCoordinate, getNodes, getNodeTypes } = useVueFlow()
-const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
-
-function onDrop(event: DragEvent) {
-  const newNode = onDropHandler(event, screenToFlowCoordinate)
-  if (newNode) {
-    addNodes([newNode])
-  }
+const projectStore = useProjectStore()
+function handleInject(nodes: Node[]) {
+  const mappedNodes = nodes.map((node) => ({
+    id: node.id,
+    type: "smart" as const,
+    name: node.data?.label ?? '',
+    enabled: true,
+    position: node.position,
+    count: node.data?.count ?? 1,
+    cycleTime: node.data?.cycleTime ?? 1,
+    mode: node.type as 'producer' | 'consumer' | 'transformer',
+    inputs: node.data?.inputs ?? [],
+    outputs: node.data?.outputs ?? [],
+    resources: node.data?.resources ?? [],
+    data: node.data,
+  }))
+  projectStore.injectNodes(mappedNodes)
 }
-
-const edges = ref<Edge[]>([
-  {
-    id: 'e1',
-    source: 'producer-1',
-    target: 'consumer-1',
-    label: 'Electricity',
-    animated: true,
-    style: { stroke: '#999' },
-    labelStyle: { fill: '#333', fontSize: 12 },
-  },
-])
+function handleClear() {
+  projectStore.clearNodes()
+}
 
 const nodes = ref<Node[]>([
   {
@@ -48,7 +52,6 @@ const nodes = ref<Node[]>([
         { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
         { resourceId: 'power', unitId: 'kWh', perCycle: 2 },
       ],
-
       resources: [
         { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
         { id: 'steel', name: 'Steel', defaultUnitId: 'kg' },
@@ -67,15 +70,35 @@ const nodes = ref<Node[]>([
     },
   },
 ])
+
+const edges = ref<Edge[]>([
+  {
+    id: 'e1',
+    source: 'producer-1',
+    target: 'consumer-1',
+    label: 'Electricity',
+    animated: true,
+    style: { stroke: '#999' },
+    labelStyle: { fill: '#333', fontSize: 12 },
+  },
+])
+
+const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
+const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
+
+function onDrop(event: DragEvent) {
+  const newNode = onDropHandler(event, screenToFlowCoordinate)
+  if (newNode) addNodes([newNode])
+}
 </script>
 
 <template>
   <div class="editor-layout" @dragover="onDragOver" @drop="onDrop">
     <NodeSidebar />
     <CanvasView :nodes="nodes" :edges="edges" @connect="addEdges" />
+    <JsonImport @inject="handleInject" @clear="handleClear" />
+    <SettingsModal />
   </div>
-
-  <SettingsModal />
 </template>
 
 <style scoped>
