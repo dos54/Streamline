@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { NodeResourceZ } from './nodeResource.schema'
 
 export const GraphNodeZ = z.object({
   id: z.string().min(1),
