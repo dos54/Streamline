@@ -2,7 +2,7 @@
 import { onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useVueFlow } from '@vue-flow/core'
-import type { Node, Edge, NodeChange } from '@vue-flow/core'
+import type { Node as VFNode, Edge, NodeChange } from '@vue-flow/core'
 
 import CanvasView from '@/components/CanvasView.vue'
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
@@ -24,7 +24,7 @@ onMounted(async () => {
   }
 })
 
-const toFlowNode = (n: (typeof projectStore.current)['nodes'][number]): Node => ({
+const toFlowNode = (n: (typeof projectStore.current)['nodes'][number]): VFNode => ({
   id: n.id,
   type: 'producer',
   position: n.position,
@@ -38,10 +38,10 @@ const toFlowNode = (n: (typeof projectStore.current)['nodes'][number]): Node => 
   },
 })
 
-function handleInject(nodes: Node[]) {
+function handleInject(nodes: VFNode[]) {
   const mappedNodes = nodes.map((node) => ({
     id: node.id,
-    type: "producer" as const,
+    type: 'producer' as const,
     name: node.data?.label ?? '',
     enabled: true,
     position: node.position,
@@ -61,12 +61,10 @@ function handleClear() {
 }
 
 // Fixed: use projectStore.current.nodes instead of projectStore.nodes
-const flowNodes = computed<Node[]>(() =>
-  projectStore.current.nodes.map(toFlowNode)
-)
+const flowNodes = computed<VFNode[]>(() => projectStore.current.nodes.map(toFlowNode))
 
 const flowEdges = computed<Edge[]>(() =>
-  projectStore.current.edges.map(e => ({
+  projectStore.current.edges.map((e) => ({
     id: e.id,
     source: e.source,
     target: e.target,
@@ -74,10 +72,10 @@ const flowEdges = computed<Edge[]>(() =>
     targetHandle: e.targetHandle,
     label: e.label,
     data: e.data,
-  }))
+  })),
 )
 
-const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
+const { addEdges, screenToFlowCoordinate } = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
 
 function onDrop(event: DragEvent) {
@@ -94,14 +92,17 @@ function onNodesChange(changes: NodeChange[]) {
     }
   }
 }
-
-
 </script>
 
 <template>
   <div class="editor-layout" @dragover="onDragOver" @drop="onDrop">
     <NodeSidebar />
-    <CanvasView :nodes="flowNodes" :edges="flowEdges" @connect="addEdges" @nodesChange="onNodesChange" />
+    <CanvasView
+      :nodes="flowNodes"
+      :edges="flowEdges"
+      @connect="addEdges"
+      @nodesChange="onNodesChange"
+    />
     <JsonImport @inject="handleInject" @clear="handleClear" />
     <SettingsModal />
   </div>

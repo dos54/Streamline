@@ -11,7 +11,6 @@ type ConsumerData = BaseData & { inputs: IODef[] }
 type ProducerData = BaseData & { cycleTime: number; inputs: IODef[]; outputs: IODef[] }
 type FlowNode = VFNode<ProducerData | ConsumerData>
 
-
 // from DnD tutorial
 // TODO: adjust the id naming convention
 function getId() {
@@ -20,11 +19,12 @@ function getId() {
 
 function mapFlowNodeToGraphNode(n: FlowNode): GraphNode {
   const data = n.data as ProducerData | ConsumerData
-  const isProducer = (d: ProducerData | ConsumerData): d is ProducerData => (d as ProducerData).cycleTime !== undefined && Array.isArray((d as ProducerData).outputs)
+  const isProducer = (d: ProducerData | ConsumerData): d is ProducerData =>
+    (d as ProducerData).cycleTime !== undefined && Array.isArray((d as ProducerData).outputs)
 
   return {
     id: n.id,
-    type: 'smart',
+    type: 'producer',
     mode: isProducer(data) ? 'producer' : 'consumer',
     name: data.label ?? n.id,
     enabled: true,

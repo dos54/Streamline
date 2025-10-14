@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const GraphNodeZ = z.object({
   id: z.string().min(1),
-  type: z.enum(['smart']), // restrict to SmartNode only
+  type: z.enum(['producer']), // restrict to SmartNode only
   name: z.string().min(1),
   enabled: z.boolean().default(true),
   position: z.object({ x: z.number(), y: z.number() }),
@@ -13,16 +13,16 @@ export const GraphNodeZ = z.object({
     z.object({
       resourceId: z.string().min(1),
       unitId: z.string().min(1),
-      perCycle: z.number().positive()
-    })
+      perCycle: z.number().positive(),
+    }),
   ),
   outputs: z.array(
     z.object({
       id: z.string().min(1),
       resourceId: z.string().min(1),
       unitId: z.string().min(1),
-      perCycle: z.number().positive()
-    })
+      perCycle: z.number().positive(),
+    }),
   ),
   tags: z.array(z.string()).optional(),
   ui: z
@@ -37,13 +37,15 @@ export const GraphNodeZ = z.object({
   // ✅ Add this block to support resource metadata
   data: z
     .object({
-      resources: z.array(
-        z.object({
-          id: z.string().min(1),
-          name: z.string().min(1),
-          defaultUnitId: z.string().min(1)
-        })
-      ).optional()
+      resources: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            name: z.string().min(1),
+            defaultUnitId: z.string().min(1),
+          }),
+        )
+        .optional(),
     })
-    .optional()
+    .optional(),
 })

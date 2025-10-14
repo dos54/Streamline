@@ -19,9 +19,7 @@
       <input type="file" accept=".json" @change="handleFileUpload" />
       <button @click="validateJson">Validate</button>
 
-      <button @click="clearCanvas" class="btn danger">
-        Clear Canvas
-      </button>
+      <button @click="clearCanvas" class="btn danger">Clear Canvas</button>
 
       <div v-if="validationResult && validationResult.valid" style="color: green">
         ✅ JSON is valid!
@@ -82,9 +80,7 @@ function validateJson() {
         fitView({ padding: 0.2 })
       }, 100)
     } else {
-      errorMessage.value =
-        'Validation failed: ' +
-        result.errors.map((e) => e.message).join(', ')
+      errorMessage.value = 'Validation failed: ' + result.errors.map((e) => e.message).join(', ')
     }
   } catch (err) {
     errorMessage.value = 'Invalid JSON format'

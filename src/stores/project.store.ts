@@ -36,7 +36,7 @@ function createEmptyProject(): Project {
 }
 
 // 🧠 Normalize legacy node types into SmartNode format
-function normalizeToSmartNode(node: any): GraphNode {
+function normalizeToSmartNode(node: GraphNode): GraphNode {
   const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
     producer: 'producer',
     consumer: 'consumer',
@@ -49,15 +49,15 @@ function normalizeToSmartNode(node: any): GraphNode {
 
   return {
     id: node.id,
-    type: 'smart',
+    type: 'producer',
     mode,
-    name: node.data?.label ?? node.name ?? 'Smart Node',
+    name: node.name ?? 'Smart Node',
     enabled: node.enabled ?? true,
     position: node.position ?? { x: 0, y: 0 },
     count: node.count ?? 1,
-    cycleTime: node.data?.cycleTime ?? node.cycleTime ?? 1,
-    inputs: node.data?.inputs ?? node.inputs ?? [],
-    outputs: node.data?.outputs ?? node.outputs ?? [],
+    cycleTime: node.cycleTime ?? 1,
+    inputs: node.inputs ?? [],
+    outputs: node.outputs ?? [],
     tags: node.tags ?? [],
     ui: node.ui ?? {},
     templateId: node.templateId ?? undefined,

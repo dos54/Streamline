@@ -39,12 +39,14 @@ const emit = defineEmits<{
   (e: 'nodesChange', payload: NodeChange[]): void
 }>()
 
-function onConnect(params: Connection) { emit('connect', params) }
+function onConnect(params: Connection) {
+  emit('connect', params)
+}
 function emitNodesChange(changes: NodeChange[]) {
   emit('nodesChange', changes)
 }
 
-const { fitView, } = useVueFlow()
+const { fitView } = useVueFlow()
 
 function handlePaneReady() {
   requestAnimationFrame(() => {
@@ -64,7 +66,6 @@ type OutputResource = {
   perCycle: number
 }
 
-
 function validateResourceFlow(nodes: Node[], edges: Edge[]) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
   const results = []
@@ -79,10 +80,11 @@ function validateResourceFlow(nodes: Node[], edges: Edge[]) {
     const inputs = target.data.inputs ?? []
 
     for (const input of inputs) {
-      const match = outputs.find((output: OutputResource) =>
-        output.resourceId === input.resourceId &&
-        output.unitId === input.unitId &&
-        output.perCycle >= input.perCycle
+      const match = outputs.find(
+        (output: OutputResource) =>
+          output.resourceId === input.resourceId &&
+          output.unitId === input.unitId &&
+          output.perCycle >= input.perCycle,
       )
 
       results.push({
