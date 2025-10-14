@@ -16,9 +16,7 @@
       Flow: {{ direction }} {{ directionArrow }}
     </button>
 
-    <div v-if="!isNodeValid" class="node-warning">
-      ⚠️ This node has invalid inputs or outputs
-    </div>
+    <div v-if="!isNodeValid" class="node-warning">⚠️ This node has invalid inputs or outputs</div>
 
     <div class="timing-section">
       <h3>Timing</h3>
@@ -36,11 +34,7 @@
       <div class="inputs-section" v-if="data.inputs?.length >= 0">
         <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div
-            v-for="(input, index) in data.inputs"
-            :key="index"
-            class="input-row"
-          >
+          <div v-for="(input, index) in data.inputs" :key="index" class="input-row">
             <label>Input {{ index + 1 }}</label>
 
             <Handle
@@ -76,9 +70,14 @@
               placeholder="perCycle"
             />
 
-            <button @click="removeInput(index)" class="remove-button" title="Remove input">✖️</button>
+            <button @click="removeInput(index)" class="remove-button" title="Remove input">
+              ✖️
+            </button>
 
-            <div v-if="!input.resourceId || !input.unitId || input.perCycle <= 0" class="validation-warning">
+            <div
+              v-if="!input.resourceId || !input.unitId || input.perCycle <= 0"
+              class="validation-warning"
+            >
               ⚠️ Resource, unit, and perCycle required
             </div>
           </div>
@@ -90,11 +89,7 @@
       <div class="outputs-section" v-if="data.outputs?.length >= 0">
         <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list">
-          <div
-            v-for="(output, index) in data.outputs"
-            :key="output.id || index"
-            class="output-row"
-          >
+          <div v-for="(output, index) in data.outputs" :key="output.id || index" class="output-row">
             <label>
               Output {{ index + 1 }}
               <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
@@ -134,7 +129,9 @@
               placeholder="perCycle"
             />
 
-            <button @click="removeOutput(index)" class="remove-button" title="Remove output">✖️</button>
+            <button @click="removeOutput(index)" class="remove-button" title="Remove output">
+              ✖️
+            </button>
 
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
@@ -147,17 +144,10 @@
   </div>
 </template>
 
-
-
-
-
-
-
-
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { Position } from '@vue-flow/core'
-import type { HandleType } from '@vue-flow/core'
+// import type { HandleType } from '@vue-flow/core'
 import { useProjectStore } from '@/stores/project.store'
 
 // Props
@@ -189,7 +179,7 @@ const data = reactive<SmartNodeData>({
   inputs: props.data.inputs ?? [],
   outputs: props.data.outputs ?? [],
   resources: props.data.resources ?? [],
-  statusColor: props.data.statusColor
+  statusColor: props.data.statusColor,
 })
 
 // Label editing
@@ -197,9 +187,12 @@ const editableLabel = ref(data.label)
 function updateLabel() {
   data.label = editableLabel.value
 }
-watch(() => data.label, newLabel => {
-  editableLabel.value = newLabel
-})
+watch(
+  () => data.label,
+  (newLabel) => {
+    editableLabel.value = newLabel
+  },
+)
 
 // Direction toggle
 const direction = ref(data.direction ?? 'ltr')
@@ -210,37 +203,33 @@ function toggleDirection() {
 const directionArrow = computed(() => (direction.value === 'ltr' ? '→' : '←'))
 
 // Handle positions
-const inputPosition = computed(() =>
-  direction.value === 'rtl' ? Position.Right : Position.Left
-)
-const outputPosition = computed(() =>
-  direction.value === 'rtl' ? Position.Left : Position.Right
-)
+const inputPosition = computed(() => (direction.value === 'rtl' ? Position.Right : Position.Left))
+const outputPosition = computed(() => (direction.value === 'rtl' ? Position.Left : Position.Right))
 
 // Resource and unit options
 const resourceOptions = computed(() => data.resources ?? [])
 const unitOptions = computed(() =>
-  resourceOptions.value.map(res => ({
+  resourceOptions.value.map((res) => ({
     id: res.defaultUnitId,
-    label: res.defaultUnitId
-  }))
+    label: res.defaultUnitId,
+  })),
 )
 
 // Auto-fill detection
 function wasAutoFilled(entry: { unitId: string; resourceId: string }) {
-  const res = resourceOptions.value.find(r => r.id === entry.resourceId)
+  const res = resourceOptions.value.find((r) => r.id === entry.resourceId)
   return res?.defaultUnitId === entry.unitId
 }
 
 // Sync unit when resource changes
 function syncUnit(output: { resourceId: string; unitId: string }) {
-  const res = resourceOptions.value.find(r => r.id === output.resourceId)
+  const res = resourceOptions.value.find((r) => r.id === output.resourceId)
   if (res && !output.unitId) {
     output.unitId = res.defaultUnitId
   }
 }
 function syncUnitForInput(input: { resourceId: string; unitId: string }) {
-  const res = resourceOptions.value.find(r => r.id === input.resourceId)
+  const res = resourceOptions.value.find((r) => r.id === input.resourceId)
   if (res && !input.unitId) {
     input.unitId = res.defaultUnitId
   }
@@ -260,7 +249,7 @@ function addOutput() {
     id: crypto.randomUUID(),
     resourceId: '',
     unitId: '',
-    perCycle: 0
+    perCycle: 0,
   })
 }
 function removeOutput(index: number) {
@@ -269,21 +258,15 @@ function removeOutput(index: number) {
 
 // Output status tracking
 const outputStatus = computed(() =>
-  data.outputs.map(output =>
-    output.resourceId && output.unitId && output.perCycle > 0
-      ? 'valid'
-      : 'invalid'
-  )
+  data.outputs.map((output) =>
+    output.resourceId && output.unitId && output.perCycle > 0 ? 'valid' : 'invalid',
+  ),
 )
 
 // Node validation
 const isNodeValid = computed(() => {
-  const allInputsValid = data.inputs.every(
-    i => i.resourceId && i.unitId && i.perCycle > 0
-  )
-  const allOutputsValid = data.outputs.every(
-    o => o.resourceId && o.unitId && o.perCycle > 0
-  )
+  const allInputsValid = data.inputs.every((i) => i.resourceId && i.unitId && i.perCycle > 0)
+  const allOutputsValid = data.outputs.every((o) => o.resourceId && o.unitId && o.perCycle > 0)
   return allInputsValid && allOutputsValid
 })
 
@@ -294,27 +277,20 @@ watch(
     cycleTime: data.cycleTime,
     direction: data.direction,
     inputs: data.inputs,
-    outputs: data.outputs
+    outputs: data.outputs,
   }),
   (newVal) => {
-    const nodeIndex = projectStore.nodes.findIndex(n => n.id === nodeId)
+    const nodeIndex = projectStore.nodes.findIndex((n) => n.id === nodeId)
     if (nodeIndex !== -1) {
       projectStore.nodes[nodeIndex].data = {
         ...projectStore.nodes[nodeIndex].data,
-        ...newVal
+        ...newVal,
       }
     }
   },
-  { deep: true }
+  { deep: true },
 )
 </script>
-
-
-
-
-
-
-
 
 <style scoped>
 .smart-node {
@@ -327,7 +303,6 @@ watch(
   font-family: 'Segoe UI', sans-serif;
   transition: border-color 0.3s ease;
 }
-
 
 .header {
   font-weight: 600;
@@ -345,7 +320,6 @@ watch(
   border-radius: 6px;
   margin-bottom: 0.75rem;
 }
-
 
 .direction-toggle {
   display: block;
@@ -368,7 +342,6 @@ watch(
   cursor: pointer;
   font-size: 0.9rem;
 }
-
 
 .inputs-section,
 .outputs-section {
@@ -431,7 +404,6 @@ watch(
   font-size: 0.9rem;
   color: #555;
 }
-
 
 .node-warning {
   background-color: #fff3cd;
@@ -511,6 +483,4 @@ select.auto-filled {
 .remove-button:hover {
   color: #d32f2f;
 }
-
-
 </style>
