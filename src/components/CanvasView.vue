@@ -8,6 +8,7 @@
       :pan-on-drag="true"
       @pane-ready="handlePaneReady"
       @connect="onConnect"
+      @nodes-change="emitNodesChange"
       class="fill"
     >
       <Background variant="dots" :gap="20" :size="1" />
@@ -19,7 +20,7 @@
 <script setup lang="ts">
 import { watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge, Connection } from '@vue-flow/core'
+import type { NodeTypesObject, Node, Edge, Connection, NodeChange } from '@vue-flow/core'
 import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
 
@@ -33,10 +34,14 @@ const props = defineProps<{
   edges: Edge[]
 }>()
 
-const emit = defineEmits(['connect'])
+const emit = defineEmits<{
+  (e: 'connect', payload: Connection): void
+  (e: 'nodesChange', payload: NodeChange[]): void
+}>()
 
-function onConnect(params: Connection) {
-  emit('connect', params)
+function onConnect(params: Connection) { emit('connect', params) }
+function emitNodesChange(changes: NodeChange[]) {
+  emit('nodesChange', changes)
 }
 
 const { fitView, } = useVueFlow()

@@ -18,35 +18,6 @@
             "inputs": [],
             "outputs": []
           }
-        },
-        {
-          "id": "consumer",
-          "type": "consumer",
-          "name": "Consumer",
-          "description": "Consumes resources with configurable inputs",
-          "icon": "🏭",
-          "color": "#ff9800",
-          "defaultData": {
-            "label": "New Consumer",
-            "direction": "ltr",
-            "inputs": []
-          }
-        },
-        {
-          "id": "smart-node",
-          "type": "smart",
-          "name": "Smart Node",
-          "description": "Handles inputs, outputs, and transformation logic",
-          "icon": "🧠",
-          "color": "#2196f3",
-          "defaultData": {
-            "label": "New Smart Node",
-            "direction": "ltr",
-            "mode": "transformer",
-            "cycleTime": 1,
-            "inputs": [],
-            "outputs": []
-          }
         }
       ]
     }

@@ -147,17 +147,10 @@
   </div>
 </template>
 
-
-
-
-
-
-
-
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { Position } from '@vue-flow/core'
-import type { HandleType } from '@vue-flow/core'
+// import type { HandleType } from '@vue-flow/core'
 import { useProjectStore } from '@/stores/project.store'
 
 // Props

@@ -38,7 +38,7 @@ type NodeType = {
   description: string
   icon: string
   color: string
-  defaultData: Record<string, any>
+  defaultData: Record<string, unknown>
 }
 
 type Category = {

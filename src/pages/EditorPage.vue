@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useVueFlow } from '@vue-flow/core'
-import type { Node, Edge } from '@vue-flow/core'
+import type { Node, Edge, NodeChange } from '@vue-flow/core'
 
 import CanvasView from '@/components/CanvasView.vue'
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
@@ -14,10 +14,34 @@ import { useProjectStore } from '@/stores/project.store'
 useHead({ title: 'Editor' })
 
 const projectStore = useProjectStore()
+
+// Only load project once when component mounts
+let isInitialized = false
+onMounted(async () => {
+  if (!isInitialized) {
+    isInitialized = true
+    await projectStore.ensureExists('new-project')
+  }
+})
+
+const toFlowNode = (n: (typeof projectStore.current)['nodes'][number]): Node => ({
+  id: n.id,
+  type: 'producer',
+  position: n.position,
+  data: {
+    label: n.name,
+    cycleTime: n.cycleTime,
+    inputs: n.inputs,
+    outputs: n.outputs,
+    resources: n.data?.resources ?? [],
+    direction: 'ltr',
+  },
+})
+
 function handleInject(nodes: Node[]) {
   const mappedNodes = nodes.map((node) => ({
     id: node.id,
-    type: "smart" as const,
+    type: "producer" as const,
     name: node.data?.label ?? '',
     enabled: true,
     position: node.position,
@@ -31,71 +55,53 @@ function handleInject(nodes: Node[]) {
   }))
   projectStore.injectNodes(mappedNodes)
 }
+
 function handleClear() {
   projectStore.clearNodes()
 }
 
-const nodes = ref<Node[]>([
-  {
-    id: 'producer-1',
-    type: 'producer',
-    position: { x: 100, y: 200 },
-    data: {
-      label: 'Iron Mine',
-      direction: 'ltr',
-      cycleTime: 5,
-      inputs: [
-        { resourceId: 'power', unitId: 'kWh', perCycle: 0.5 },
-        { resourceId: 'steel', unitId: 'kg', perCycle: 2 },
-      ],
-      outputs: [
-        { resourceId: 'steel', unitId: 'kg', perCycle: 1 },
-        { resourceId: 'power', unitId: 'kWh', perCycle: 2 },
-      ],
-      resources: [
-        { id: 'power', name: 'Electricity', defaultUnitId: 'kWh' },
-        { id: 'steel', name: 'Steel', defaultUnitId: 'kg' },
-      ],
-    },
-  },
-  {
-    id: 'consumer-1',
-    type: 'consumer',
-    position: { x: 400, y: 200 },
-    data: {
-      label: 'Smelter',
-      direction: 'ltr',
-      inputs: [{ resourceId: 'power', unitId: 'kWh', perCycle: 1 }],
-      resources: [{ id: 'power', name: 'Electricity', defaultUnitId: 'kWh' }],
-    },
-  },
-])
+// Fixed: use projectStore.current.nodes instead of projectStore.nodes
+const flowNodes = computed<Node[]>(() =>
+  projectStore.current.nodes.map(toFlowNode)
+)
 
-const edges = ref<Edge[]>([
-  {
-    id: 'e1',
-    source: 'producer-1',
-    target: 'consumer-1',
-    label: 'Electricity',
-    animated: true,
-    style: { stroke: '#999' },
-    labelStyle: { fill: '#333', fontSize: 12 },
-  },
-])
+const flowEdges = computed<Edge[]>(() =>
+  projectStore.current.edges.map(e => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
+    label: e.label,
+    data: e.data,
+  }))
+)
 
 const { addNodes, addEdges, screenToFlowCoordinate } = useVueFlow()
 const { onDragOver, onDrop: onDropHandler } = useDragAndDrop()
 
 function onDrop(event: DragEvent) {
-  const newNode = onDropHandler(event, screenToFlowCoordinate)
-  if (newNode) addNodes([newNode])
+  onDropHandler(event, screenToFlowCoordinate)
 }
+
+function onNodesChange(changes: NodeChange[]) {
+  for (const c of changes) {
+    if (c.type === 'position' && 'id' in c) {
+      if (c.dragging === false || c.dragging === undefined) {
+        const pos = (c as { position?: { x: number; y: number } }).position
+        if (pos) projectStore.updateNodePosition(c.id, pos)
+      }
+    }
+  }
+}
+
+
 </script>
 
 <template>
   <div class="editor-layout" @dragover="onDragOver" @drop="onDrop">
     <NodeSidebar />
-    <CanvasView :nodes="nodes" :edges="edges" @connect="addEdges" />
+    <CanvasView :nodes="flowNodes" :edges="flowEdges" @connect="addEdges" @nodesChange="onNodesChange" />
     <JsonImport @inject="handleInject" @clear="handleClear" />
     <SettingsModal />
   </div>
