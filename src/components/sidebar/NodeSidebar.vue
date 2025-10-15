@@ -25,6 +25,43 @@
       </div>
     </div>
 
+    <!-- ✅ Selected Node Autofill -->
+    <div v-if="node" class="selected-node-editor">
+      <h4>Edit Selected Node</h4>
+
+      <div class="field">
+        <label>Name</label>
+        <input v-model="node.name" />
+      </div>
+
+      <div class="field">
+        <label>Cycle Time</label>
+        <input type="number" v-model.number="node.cycleTime" min="1" />
+      </div>
+
+      <div class="field">
+        <label>Mode</label>
+        <select v-model="node.mode">
+          <option value="producer">Producer</option>
+          <option value="consumer">Consumer</option>
+          <option value="transformer">Transformer</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Resources</label>
+        <ul>
+          <li v-for="r in node.data?.resources ?? []" :key="r.id">
+            {{ r.name }} ({{ r.defaultUnitId }})
+          </li>
+        </ul>
+      </div>
+
+      <v-btn @click="saveNode" color="success" block class="mt-2">
+        Save Node
+      </v-btn>
+    </div>
+
     <!-- ✅ Footer Buttons -->
     <div class="sidebar-footer">
       <v-btn @click="exportProject" color="primary" block class="mb-2">
@@ -37,15 +74,32 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 import { useProjectStore } from '@/stores/project.store'
 import { useUiStore } from '@/stores/ui.store'
+import type { GraphNode } from '@/types/graphNode'
+
+const props = defineProps<{
+  node: GraphNode | null
+}>()
 
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
+
+function saveNode() {
+  if (props.node) {
+    console.info('🧠 Saving node:', {
+      id: props.node.id,
+      name: props.node.name,
+      cycleTime: props.node.cycleTime,
+      mode: props.node.mode,
+    })
+    projectStore.upsertNode(props.node)
+  }
+}
+
 
 function exportProject() {
   const data = projectStore.exportProject()
@@ -61,7 +115,6 @@ function exportProject() {
 function showImportPanel() {
   uiStore.importPanelVisible = true
 }
-
 
 type NodeType = {
   id: string
@@ -193,14 +246,27 @@ onMounted(() => {
   line-height: 1.3;
 }
 
-/* Drag state styles */
-.sidebar-node[draggable='true']:hover {
-  cursor: grab;
+.selected-node-editor {
+  padding: 1rem;
+  border-top: 1px solid #ddd;
+  background-color: #fff;
 }
 
-.sidebar-node[draggable='true']:active {
-  cursor: grabbing;
-  opacity: 0.7;
+.field {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .sidebar-footer {
@@ -209,5 +275,4 @@ onMounted(() => {
   border-top: 1px solid #e0e0e0;
   background-color: #fff;
 }
-
 </style>

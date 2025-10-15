@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useVueFlow } from '@vue-flow/core'
-import type { Node as VFNode, Edge, NodeChange, AddEdges, Connection } from '@vue-flow/core'
+import type { Node as VFNode, Edge, NodeChange, Connection } from '@vue-flow/core'
 
 import CanvasView from '@/components/CanvasView.vue'
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
@@ -10,12 +10,12 @@ import SettingsModal from '@/components/modals/SettingsModal.vue'
 import JsonImport from '@/components/JsonImport.vue'
 import useDragAndDrop from '@/useDnD'
 import { useProjectStore } from '@/stores/project.store'
+import type { GraphNode } from '@/types/graphNode'
 
 useHead({ title: 'Editor' })
 
 const projectStore = useProjectStore()
 
-// Only load project once when component mounts
 let isInitialized = false
 onMounted(async () => {
   if (!isInitialized) {
@@ -23,6 +23,13 @@ onMounted(async () => {
     await projectStore.ensureExists('new-project')
   }
 })
+
+const selectedNode = ref<GraphNode | null>(null)
+
+function handleNodeClick(node: VFNode) {
+  const found = projectStore.nodeById(node.id)
+  selectedNode.value = found ?? null
+}
 
 const toFlowNode = (n: (typeof projectStore.current)['nodes'][number]): VFNode => ({
   id: n.id,
@@ -60,7 +67,6 @@ function handleClear() {
   projectStore.clearNodes()
 }
 
-// Fixed: use projectStore.current.nodes instead of projectStore.nodes
 const flowNodes = computed<VFNode[]>(() => projectStore.current.nodes.map(toFlowNode))
 
 const flowEdges = computed<Edge[]>(() =>
@@ -94,7 +100,13 @@ function onNodesChange(changes: NodeChange[]) {
 }
 
 function onAddEdge(edge: Connection) {
-  const connection = { ...edge, id: String(crypto.randomUUID()), enabled: true, sourceHandle: edge.sourceHandle ?? "", targetHandle: edge.targetHandle ?? ""}
+  const connection = {
+    ...edge,
+    id: String(crypto.randomUUID()),
+    enabled: true,
+    sourceHandle: edge.sourceHandle ?? '',
+    targetHandle: edge.targetHandle ?? '',
+  }
   addEdges(connection)
   projectStore.upsertEdge(connection)
 }
@@ -102,12 +114,13 @@ function onAddEdge(edge: Connection) {
 
 <template>
   <div class="editor-layout" @dragover="onDragOver" @drop="onDrop">
-    <NodeSidebar />
+    <NodeSidebar :node="selectedNode" />
     <CanvasView
       :nodes="flowNodes"
       :edges="flowEdges"
       @connect="onAddEdge"
       @nodesChange="onNodesChange"
+      @nodeClick="handleNodeClick"
     />
     <JsonImport @inject="handleInject" @clear="handleClear" />
     <SettingsModal />
