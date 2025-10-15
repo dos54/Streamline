@@ -1,8 +1,9 @@
 <template>
-  <div class="app-root">
+  <v-app>
     <RouterView />
-  </div>
+  </v-app>
 </template>
+
 
 <style>
 .app-root {

@@ -6,6 +6,8 @@ import type { Project } from '@/types/project'
 import type { GraphNode } from '@/types/graphNode'
 import type { GraphEdge } from '@/types/graphEdge'
 
+
+
 function createEmptyProject(): Project {
   return {
     id: 'new-project',
@@ -36,7 +38,7 @@ function createEmptyProject(): Project {
 }
 
 // 🧠 Normalize legacy node types into SmartNode format
-function normalizeToSmartNode(node: GraphNode): GraphNode {
+export function normalizeToSmartNode(node: GraphNode): GraphNode {
   const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
     producer: 'producer',
     consumer: 'consumer',
@@ -49,7 +51,7 @@ function normalizeToSmartNode(node: GraphNode): GraphNode {
 
   return {
     id: node.id,
-    type: 'producer',
+    type: 'producer', // normalized type
     mode,
     name: node.name ?? 'Smart Node',
     enabled: node.enabled ?? true,
@@ -67,6 +69,7 @@ function normalizeToSmartNode(node: GraphNode): GraphNode {
   }
 }
 
+
 export const useProjectStore = defineStore('project', {
   state: () => ({
     current: createEmptyProject(),
@@ -83,7 +86,6 @@ export const useProjectStore = defineStore('project', {
 
   actions: {
     async ensureExists(projectId: string) {
-      // fast path: load if present
       const existing = await db.projects.get(projectId)
       if (existing) {
         const normalized: Project = {
@@ -167,7 +169,6 @@ export const useProjectStore = defineStore('project', {
       if (i === -1) this.current.nodes.push(node)
       else Object.assign(this.current.nodes[i], node)
 
-      // keep resource catalog in sync
       const resources = node.data?.resources ?? []
       const map = new Map(this.current.resources.map((r) => [r.id, r]))
       for (const r of resources) map.set(r.id, r)
@@ -231,7 +232,7 @@ export const useProjectStore = defineStore('project', {
       await this.save()
     },
 
-    async updateNodePosition(id: string, position: { x: number; y: number }) {
+       async updateNodePosition(id: string, position: { x: number; y: number }) {
       const n = this.current.nodes.find((node) => node.id === id)
       if (!n) {
         console.info('Attempt to move nonexistent node')
@@ -241,5 +242,21 @@ export const useProjectStore = defineStore('project', {
       console.info('Updating node position:', id)
       await this.save()
     },
-  },
+
+    // ✅ NEW: Export current project snapshot for JSON download
+    exportProject() {
+      return {
+        id: this.current.id,
+        name: this.current.name,
+        schemaVersion: this.current.schemaVersion,
+        createdAt: this.current.createdAt,
+        updatedAt: this.current.updatedAt,
+        settings: this.current.settings,
+        nodes: this.current.nodes,
+        edges: this.current.edges,
+        resources: this.current.resources,
+        units: this.current.units,
+      }
+    }
+  }
 })

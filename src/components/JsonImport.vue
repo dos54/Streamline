@@ -18,10 +18,9 @@
 
       <input type="file" accept=".json" @change="handleFileUpload" />
       <button @click="validateJson">Validate</button>
-
       <button @click="clearCanvas" class="btn danger">Clear Canvas</button>
 
-      <div v-if="validationResult && validationResult.valid" style="color: green">
+      <div v-if="validationResult?.valid" style="color: green">
         ✅ JSON is valid!
       </div>
 
@@ -47,6 +46,7 @@
 import { ref } from 'vue'
 import { useVueFlow } from '@vue-flow/core'
 import { validateNodeJson } from '../utils/nodeValidator'
+import { normalizeToSmartNode } from '@/stores/project.store'
 import type { ZodIssue } from 'zod'
 
 const emit = defineEmits<{
@@ -73,13 +73,25 @@ function validateJson() {
 
     if (result.valid) {
       errorMessage.value = ''
-      emit('inject', parsed)
 
-      // ✅ Force canvas repaint after injection
+      let rawNodes = []
+      if (Array.isArray(parsed)) {
+        rawNodes = parsed
+      } else if (parsed.nodes && Array.isArray(parsed.nodes)) {
+        rawNodes = parsed.nodes
+      } else {
+        errorMessage.value = 'Unrecognized format: expected array or { nodes: [...] }'
+        return
+      }
+
+      const normalized = rawNodes.map(normalizeToSmartNode)
+      emit('inject', normalized)
+
       setTimeout(() => {
         fitView({ padding: 0.2 })
       }, 100)
     } else {
+      console.warn('Validation issues:', result.errors) // ✅ added log
       errorMessage.value = 'Validation failed: ' + result.errors.map((e) => e.message).join(', ')
     }
   } catch (err) {
@@ -88,9 +100,12 @@ function validateJson() {
   }
 }
 
+
 function clearCanvas() {
-  console.log('Clear button clicked')
   emit('clear')
+  jsonText.value = ''
+  validationResult.value = null
+  errorMessage.value = ''
 }
 
 function handleFileUpload(event: Event) {

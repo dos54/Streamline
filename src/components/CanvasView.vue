@@ -1,21 +1,17 @@
 <template>
   <div class="canvas-wrapper">
-    <VueFlow
-      :nodes="nodes"
-      :edges="edges"
-      :node-types="nodeTypes"
-      :zoom-on-scroll="true"
-      :pan-on-drag="true"
-      @pane-ready="handlePaneReady"
-      @connect="emitConnect"
-      @nodes-change="emitNodesChange"
-      class="fill"
-    >
+    <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
+      @pane-ready="handlePaneReady" @connect="emitConnect" @nodes-change="emitNodesChange" class="fill">
       <Background variant="dots" :gap="20" :size="1" />
     </VueFlow>
+
     <CanvasOverlay />
+
+    
+
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { watchEffect } from 'vue'
@@ -28,6 +24,9 @@ import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
+
+
+
 
 const props = defineProps<{
   nodes: Node[]
@@ -157,4 +156,12 @@ watchEffect(() => {
   width: 100%;
   height: 100%;
 }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid #ddd;
+  background-color: #f5f5f5;
+}
+
 </style>
