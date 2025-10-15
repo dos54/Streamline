@@ -34,7 +34,11 @@ export function normalizeToSmartNode(node: GraphNode, resources: Project['resour
     templateId: node.templateId ?? undefined,
     data: {
       ...node.data,
-      resources: node.data?.resources ?? resources,
+      resources: (node.data?.resources ?? resources).filter(
+  (r): r is { id: string; name: string; defaultUnitId: string } =>
+    typeof r.defaultUnitId === 'string'
+),
+
     },
   }
 }
