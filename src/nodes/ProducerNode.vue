@@ -1,16 +1,8 @@
 <template>
-  <div
-    class="producer-node"
-    :style="{ borderColor: isNodeValid ? data.statusColor || '#ccc' : '#f44336' }"
-  >
+  <div class="producer-node" :style="{ borderColor: isNodeValid ? data.statusColor || '#ccc' : '#f44336' }">
     <div class="header">Producer</div>
 
-    <input
-      class="label-input"
-      v-model="editableLabel"
-      @blur="updateLabel"
-      placeholder="Enter name"
-    />
+    <input class="label-input" v-model="editableLabel" @blur="updateLabel" placeholder="Enter name" />
 
     <button class="direction-toggle" @click="toggleDirection">
       Flow: {{ direction }} {{ directionArrow }}
@@ -20,33 +12,18 @@
 
     <div class="timing-section">
       <h3>Timing</h3>
-      <input
-        v-model.number="data.cycleTime"
-        type="number"
-        placeholder="Cycle Time (s)"
-        min="0"
-        step="0.1"
-      />
+      <input v-model.number="data.cycleTime" type="number" placeholder="Cycle Time (s)" min="0" step="0.1" />
     </div>
 
     <div class="io-wrapper" :class="direction">
+      <!-- Inputs -->
       <div class="inputs-section" v-if="Array.isArray(data.inputs)">
         <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div
-            v-for="(input, index) in data.inputs"
-            :key="index"
-            class="input-row"
-            style="position: relative"
-          >
+          <div v-for="(input, index) in data.inputs" :key="index" class="input-row" style="position: relative">
             <label>Input {{ index + 1 }}</label>
 
-            <Handle
-              type="target"
-              :position="inputPosition"
-              :id="`input-${index}`"
-              class="row-handle"
-            />
+            <Handle type="target" :position="inputPosition" :id="`input-${index}`" class="row-handle" />
 
             <select v-model="input.resourceId">
               <option value="">Select resource</option>
@@ -55,43 +32,31 @@
               </option>
             </select>
 
-            <input
-              type="number"
-              v-model.number="input.perCycle"
-              min="0"
-              step="0.1"
-              placeholder="perCycle"
-            />
+            <input type="number" v-model.number="input.perCycle" min="0" step="0.1" placeholder="perCycle" />
 
             <div v-if="!input.resourceId || input.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
+
+            <!-- 🗑️ Delete Input -->
+            <button @click="removeInput(index)" class="delete-button">🗑️</button>
           </div>
         </div>
         <button @click="addInput" class="add-button">+ Add Input</button>
       </div>
 
+      <!-- Outputs -->
       <div class="outputs-section" v-if="Array.isArray(data.outputs)">
         <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list">
-          <div
-            v-for="(output, index) in data.outputs"
-            :key="output.id"
-            class="output-row"
-            style="position: relative"
-          >
+          <div v-for="(output, index) in data.outputs" :key="output.id" class="output-row" style="position: relative">
             <label>
               Output {{ index + 1 }}
               <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
               <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
             </label>
 
-            <Handle
-              type="source"
-              :position="outputPosition"
-              :id="`output-${output.id}`"
-              class="row-handle"
-            />
+            <Handle type="source" :position="outputPosition" :id="`output-${output.id}`" class="row-handle" />
 
             <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
@@ -100,27 +65,21 @@
               </option>
             </select>
 
-            <select
-              v-model="output.unitId"
-              :class="{ 'auto-filled': wasAutoFilled(output) }"
-              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''"
-            >
+            <select v-model="output.unitId" :class="{ 'auto-filled': wasAutoFilled(output) }"
+              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''">
               <option value="">Select unit</option>
               <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
                 {{ unit.label }}
               </option>
             </select>
 
-            <input
-              type="number"
-              v-model.number="output.perCycle"
-              min="0"
-              step="0.1"
-              placeholder="perCycle"
-            />
+            <input type="number" v-model.number="output.perCycle" min="0" step="0.1" placeholder="perCycle" />
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
+
+            <!-- 🗑️ Delete Output -->
+            <button @click="removeOutput(index)" class="delete-button">🗑️</button>
           </div>
         </div>
         <button @click="addOutput" class="add-button">+ Add Output</button>
@@ -128,6 +87,7 @@
     </div>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue'
@@ -198,6 +158,15 @@ function createOutput() {
 function addOutput() {
   data.outputs.push(createOutput())
 }
+
+function removeInput(index: number) {
+  data.inputs.splice(index, 1)
+}
+
+function removeOutput(index: number) {
+  data.outputs.splice(index, 1)
+}
+
 
 // ✅ Validation helpers
 function isValidResource(r: { resourceId: string; perCycle: number }) {
@@ -426,7 +395,8 @@ select.auto-filled {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  left: -12px; /* or right: -12px for RTL */
+  left: -12px;
+  /* or right: -12px for RTL */
   width: 10px;
   height: 10px;
   background-color: #4caf50;
@@ -434,4 +404,16 @@ select.auto-filled {
   border-radius: 50%;
   z-index: 10;
 }
+
+.delete-button {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: transparent;
+  border: none;
+  color: #f44336;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
 </style>

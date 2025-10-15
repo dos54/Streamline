@@ -6,6 +6,43 @@ import type { Project } from '@/types/project'
 import type { GraphNode } from '@/types/graphNode'
 import type { GraphEdge } from '@/types/graphEdge'
 
+// 🧠 Normalize legacy node types into SmartNode format
+export function normalizeToSmartNode(node: GraphNode, resources: Project['resources'] = []): GraphNode {
+  const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
+    producer: 'producer',
+    consumer: 'consumer',
+    source: 'producer',
+    sink: 'consumer',
+    machine: 'transformer',
+  }
+
+  const mode = modeMap[node.type] ?? 'transformer'
+
+  return {
+    id: node.id ?? crypto.randomUUID(),
+    type: 'producer',
+    mode,
+    name: node.name ?? 'Smart Node',
+    enabled: node.enabled ?? true,
+    position: node.position ?? { x: 0, y: 0 },
+    count: node.count ?? 1,
+    cycleTime: node.cycleTime ?? 1,
+    inputs: node.inputs ?? [],
+    outputs: node.outputs ?? [],
+    tags: node.tags ?? [],
+    ui: node.ui ?? {},
+    templateId: node.templateId ?? undefined,
+    data: {
+      ...node.data,
+      resources: (node.data?.resources ?? resources).filter(
+  (r): r is { id: string; name: string; defaultUnitId: string } =>
+    typeof r.defaultUnitId === 'string'
+),
+
+    },
+  }
+}
+
 function createEmptyProject(): Project {
   return {
     id: 'new-project',
@@ -35,38 +72,6 @@ function createEmptyProject(): Project {
   }
 }
 
-// 🧠 Normalize legacy node types into SmartNode format
-function normalizeToSmartNode(node: GraphNode): GraphNode {
-  const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
-    producer: 'producer',
-    consumer: 'consumer',
-    source: 'producer',
-    sink: 'consumer',
-    machine: 'transformer',
-  }
-
-  const mode = modeMap[node.type] ?? 'transformer'
-
-  return {
-    id: node.id,
-    type: 'producer',
-    mode,
-    name: node.name ?? 'Smart Node',
-    enabled: node.enabled ?? true,
-    position: node.position ?? { x: 0, y: 0 },
-    count: node.count ?? 1,
-    cycleTime: node.cycleTime ?? 1,
-    inputs: node.inputs ?? [],
-    outputs: node.outputs ?? [],
-    tags: node.tags ?? [],
-    ui: node.ui ?? {},
-    templateId: node.templateId ?? undefined,
-    data: {
-      resources: node.data?.resources ?? [],
-    },
-  }
-}
-
 export const useProjectStore = defineStore('project', {
   state: () => ({
     current: createEmptyProject(),
@@ -83,12 +88,11 @@ export const useProjectStore = defineStore('project', {
 
   actions: {
     async ensureExists(projectId: string) {
-      // fast path: load if present
       const existing = await db.projects.get(projectId)
       if (existing) {
         const normalized: Project = {
           ...existing,
-          nodes: (existing.nodes ?? []).map((n) => normalizeToSmartNode(n)),
+          nodes: (existing.nodes ?? []).map((n) => normalizeToSmartNode(n, existing.resources)),
         }
         const parsed = ProjectZ.parse(normalized)
         this.current = parsed
@@ -106,7 +110,7 @@ export const useProjectStore = defineStore('project', {
         if (loaded) {
           const normalized: Project = {
             ...loaded,
-            nodes: (loaded.nodes ?? []).map((n) => normalizeToSmartNode(n)),
+            nodes: (loaded.nodes ?? []).map((n) => normalizeToSmartNode(n, loaded.resources)),
           }
           const parsed = ProjectZ.parse(normalized)
           this.current = parsed
@@ -127,7 +131,11 @@ export const useProjectStore = defineStore('project', {
       const p = await db.projects.get(id)
       if (!p) throw new Error('Project not found')
 
-      const normalized = { ...p, nodes: (p.nodes ?? []).map(normalizeToSmartNode) }
+      const normalized = {
+        ...p,
+        nodes: (p.nodes ?? []).map((n) => normalizeToSmartNode(n, p.resources)),
+        edges: p.edges ?? [],
+      }
       const parsed = ProjectZ.parse(normalized)
 
       this.current = parsed
@@ -167,7 +175,6 @@ export const useProjectStore = defineStore('project', {
       if (i === -1) this.current.nodes.push(node)
       else Object.assign(this.current.nodes[i], node)
 
-      // keep resource catalog in sync
       const resources = node.data?.resources ?? []
       const map = new Map(this.current.resources.map((r) => [r.id, r]))
       for (const r of resources) map.set(r.id, r)
@@ -209,14 +216,50 @@ export const useProjectStore = defineStore('project', {
     },
 
     async injectNodes(newNodes: GraphNode[]) {
-      const normalizedNodes = newNodes.map(normalizeToSmartNode)
+      const normalizedNodes = newNodes.map((n) => normalizeToSmartNode(n, this.current.resources))
       this.current.nodes = normalizedNodes
       this.current.edges = []
 
       const allResources = normalizedNodes.flatMap((n) => n.data?.resources ?? [])
       const uniq = Array.from(new Map(allResources.map((r) => [r.id, r])).values())
       this.current.resources = uniq
-      this.current.units = []
+      this.current.units = [
+  {
+    id: 'kWh',
+    name: 'Kilowatt Hour',
+    symbol: 'kWh',
+    baseUnit: 'kWh',
+    factor: 1,
+    dimension: 'energy',
+  },
+  {
+    id: 'kg',
+    name: 'Kilogram',
+    symbol: 'kg',
+    baseUnit: 'kg',
+    factor: 1,
+    dimension: 'mass',
+  },
+  {
+    id: 'lux',
+    name: 'Lux',
+    symbol: 'lx',
+    baseUnit: 'lux',
+    factor: 1,
+    dimension: 'light',
+  },
+  {
+    id: 's',
+    name: 'Second',
+    symbol: 's',
+    baseUnit: 's',
+    factor: 1,
+    dimension: 'time',
+  },
+]
+
+
+
 
       this.projectLoaded = true
       await this.save()
@@ -241,5 +284,20 @@ export const useProjectStore = defineStore('project', {
       console.info('Updating node position:', id)
       await this.save()
     },
-  },
+
+    exportProject() {
+      return {
+        id: this.current.id,
+        name: this.current.name,
+        schemaVersion: this.current.schemaVersion,
+        createdAt: this.current.createdAt,
+        updatedAt: this.current.updatedAt,
+        settings: this.current.settings,
+        nodes: this.current.nodes,
+        edges: this.current.edges,
+        resources: this.current.resources,
+        units: this.current.units,
+      }
+    }
+  }
 })

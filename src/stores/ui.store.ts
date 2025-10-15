@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import router from '@/router'
 
 export const useUiStore = defineStore('ui', () => {
   const route = router.currentRoute
   const settingsOpen = ref(false)
+  const importPanelVisible = ref(false) // ✅ NEW: controls Import JSON panel
 
+  // 🔁 Sync settingsOpen with query param
   watch(
     route,
     (r) => {
@@ -31,6 +33,7 @@ export const useUiStore = defineStore('ui', () => {
     }
   })
 
+  // 🧭 Settings panel controls
   function openSettings() {
     settingsOpen.value = true
   }
@@ -39,5 +42,26 @@ export const useUiStore = defineStore('ui', () => {
     settingsOpen.value = false
   }
 
-  return { openSettings, closeSettings, settingsOpen }
+  // 📦 Import panel controls
+  function toggleImportPanel() {
+    importPanelVisible.value = !importPanelVisible.value
+  }
+
+  function openImportPanel() {
+    importPanelVisible.value = true
+  }
+
+  function closeImportPanel() {
+    importPanelVisible.value = false
+  }
+
+  return {
+    openSettings,
+    closeSettings,
+    settingsOpen,
+    importPanelVisible,
+    toggleImportPanel,
+    openImportPanel,
+    closeImportPanel,
+  }
 })

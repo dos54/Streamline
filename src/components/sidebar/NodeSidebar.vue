@@ -24,12 +24,44 @@
         </div>
       </div>
     </div>
+
+    <!-- ✅ Footer Buttons -->
+    <div class="sidebar-footer">
+      <v-btn @click="exportProject" color="primary" block class="mb-2">
+        Export JSON
+      </v-btn>
+      <v-btn @click="showImportPanel" color="secondary" block>
+        Import JSON
+      </v-btn>
+    </div>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
+import { useProjectStore } from '@/stores/project.store'
+import { useUiStore } from '@/stores/ui.store'
+
+const projectStore = useProjectStore()
+const uiStore = useUiStore()
+
+function exportProject() {
+  const data = projectStore.exportProject()
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'project.json'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function showImportPanel() {
+  uiStore.importPanelVisible = true
+}
+
 
 type NodeType = {
   id: string
@@ -170,4 +202,12 @@ onMounted(() => {
   cursor: grabbing;
   opacity: 0.7;
 }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fff;
+}
+
 </style>
