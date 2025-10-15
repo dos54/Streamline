@@ -83,9 +83,10 @@ function onDrop(event: DragEvent) {
 }
 
 function onNodesChange(changes: NodeChange[]) {
+  console.log('changed', changes)
   for (const c of changes) {
     if (c.type === 'position' && 'id' in c) {
-      if (c.dragging === false || c.dragging === undefined) {
+      if (c.dragging === true) {
         const pos = (c as { position?: { x: number; y: number } }).position
         if (pos) projectStore.updateNodePosition(c.id, pos)
       }
