@@ -25,27 +25,31 @@
       </div>
     </div>
 
+    <AddUnitModal v-model:open="showAdd" />
+    <AddResourceModal v-model:open="showResource" />
+
     <!-- ✅ Footer Buttons -->
     <div class="sidebar-footer">
-      <v-btn @click="exportProject" color="primary" block class="mb-2">
-        Export JSON
-      </v-btn>
-      <v-btn @click="showImportPanel" color="secondary" block>
-        Import JSON
-      </v-btn>
+      <v-btn @click="showResource = true" class="mb-2" block color="primary">Add Resource</v-btn>
+      <v-btn @click="showAdd = true" class="mb-2" block color="secondary">Add Unit</v-btn>
+      <v-btn @click="exportProject" color="primary" block class="mb-2"> Export JSON </v-btn>
+      <v-btn @click="showImportPanel" color="secondary" block> Import JSON </v-btn>
     </div>
   </div>
 </template>
-
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 import { useProjectStore } from '@/stores/project.store'
 import { useUiStore } from '@/stores/ui.store'
+import AddUnitModal from '@/components/modals/AddUnitModal.vue'
+import AddResourceModal from '../modals/AddResourceModal.vue'
 
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
+const showAdd = ref(false)
+const showResource = ref(false)
 
 function exportProject() {
   const data = projectStore.exportProject()
@@ -61,7 +65,6 @@ function exportProject() {
 function showImportPanel() {
   uiStore.importPanelVisible = true
 }
-
 
 type NodeType = {
   id: string
@@ -209,5 +212,4 @@ onMounted(() => {
   border-top: 1px solid #e0e0e0;
   background-color: #fff;
 }
-
 </style>
