@@ -183,6 +183,7 @@ export const useProjectStore = defineStore('project', {
     },
 
     async upsertEdge(edge: GraphEdge) {
+      console.log("edge", edge);
       const i = this.current.edges.findIndex((e) => e.id === edge.id)
       if (i === -1) this.current.edges.push(edge)
       else Object.assign(this.current.edges[i], edge)

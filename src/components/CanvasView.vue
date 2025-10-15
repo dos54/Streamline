@@ -7,7 +7,7 @@
       :zoom-on-scroll="true"
       :pan-on-drag="true"
       @pane-ready="handlePaneReady"
-      @connect="onConnect"
+      @connect="emitConnect"
       @nodes-change="emitNodesChange"
       class="fill"
     >
@@ -39,7 +39,7 @@ const emit = defineEmits<{
   (e: 'nodesChange', payload: NodeChange[]): void
 }>()
 
-function onConnect(params: Connection) {
+function emitConnect(params: Connection) {
   emit('connect', params)
 }
 function emitNodesChange(changes: NodeChange[]) {

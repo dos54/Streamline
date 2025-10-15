@@ -2,7 +2,7 @@
 import { onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useVueFlow } from '@vue-flow/core'
-import type { Node as VFNode, Edge, NodeChange } from '@vue-flow/core'
+import type { Node as VFNode, Edge, NodeChange, AddEdges, Connection } from '@vue-flow/core'
 
 import CanvasView from '@/components/CanvasView.vue'
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
@@ -83,7 +83,6 @@ function onDrop(event: DragEvent) {
 }
 
 function onNodesChange(changes: NodeChange[]) {
-  console.log('changed', changes)
   for (const c of changes) {
     if (c.type === 'position' && 'id' in c) {
       if (c.dragging === true) {
@@ -93,6 +92,12 @@ function onNodesChange(changes: NodeChange[]) {
     }
   }
 }
+
+function onAddEdge(edge: Connection) {
+  const connection = { ...edge, id: String(crypto.randomUUID()), enabled: true, sourceHandle: edge.sourceHandle ?? "", targetHandle: edge.targetHandle ?? ""}
+  addEdges(connection)
+  projectStore.upsertEdge(connection)
+}
 </script>
 
 <template>
@@ -101,7 +106,7 @@ function onNodesChange(changes: NodeChange[]) {
     <CanvasView
       :nodes="flowNodes"
       :edges="flowEdges"
-      @connect="addEdges"
+      @connect="onAddEdge"
       @nodesChange="onNodesChange"
     />
     <JsonImport @inject="handleInject" @clear="handleClear" />
