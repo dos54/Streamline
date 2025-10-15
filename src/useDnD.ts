@@ -45,7 +45,12 @@ function mapFlowNodeToGraphNode(n: FlowNode): GraphNode {
         }))
       : [],
     templateId: '',
-    data: { resources: data.resources ?? [] },
+    data: {
+  resources: (data.resources ?? []).filter(
+    (r): r is ResourceRef => typeof r.defaultUnitId === 'string'
+  ),
+},
+
   }
 }
 
