@@ -37,7 +37,13 @@ import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
-import { markRaw } from 'vue'
+import { defineComponent, markRaw } from 'vue'
+
+
+
+
+
+
 
 const props = defineProps<{
   nodes: Node[]
@@ -72,11 +78,20 @@ function handlePaneReady() {
 
 
 
-const nodeTypes: NodeTypesObject = {
+const nodeTypes: Record<string, Component> = {
   producer: markRaw(ProducerNode),
   consumer: markRaw(ConsumerNode),
   smart: markRaw(SmartNode),
 }
+
+
+
+
+
+
+
+
+
 
 
 type OutputResource = {
