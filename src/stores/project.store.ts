@@ -5,9 +5,38 @@ import { ProjectZ } from '@/schemas/project.schema'
 import type { Project } from '@/types/project'
 import type { GraphNode } from '@/types/graphNode'
 import type { GraphEdge } from '@/types/graphEdge'
+import { summarizeProject } from '@/utils/summary'
+
+// Strip functions and stuffs from the node to make it serializable
+function toSerializable<T>(v: T) {
+  return JSON.parse(
+    JSON.stringify(v, (_k, val) => {
+      if (typeof val === 'function') return undefined
+      if (typeof val === 'symbol') return undefined
+      return val
+    }),
+  )
+}
+
+// Sanitize new nodes right away
+function sanitizeNode<T>(node: T): T {
+  return JSON.parse(
+    JSON.stringify(node, (_k, val) => {
+      if (typeof val === 'function') return undefined
+      if (typeof val === 'symbol') return undefined
+      if (val && typeof val === 'object' && 'el' in val) return undefined
+      return val
+    }),
+  )
+}
+
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] }
 
 // 🧠 Normalize legacy node types into SmartNode format
-export function normalizeToSmartNode(node: GraphNode, resources: Project['resources'] = []): GraphNode {
+export function normalizeToSmartNode(
+  node: GraphNode,
+  resources: Project['resources'] = [],
+): GraphNode {
   const modeMap: Record<string, 'producer' | 'consumer' | 'transformer'> = {
     producer: 'producer',
     consumer: 'consumer',
@@ -29,16 +58,14 @@ export function normalizeToSmartNode(node: GraphNode, resources: Project['resour
     cycleTime: node.cycleTime ?? 1,
     inputs: node.inputs ?? [],
     outputs: node.outputs ?? [],
-    tags: node.tags ?? [],
     ui: node.ui ?? {},
     templateId: node.templateId ?? undefined,
     data: {
       ...node.data,
       resources: (node.data?.resources ?? resources).filter(
-  (r): r is { id: string; name: string; defaultUnitId: string } =>
-    typeof r.defaultUnitId === 'string'
-),
-
+        (r): r is { id: string; name: string; defaultUnitId: string } =>
+          typeof r.defaultUnitId === 'string',
+      ),
     },
   }
 }
@@ -84,6 +111,9 @@ export const useProjectStore = defineStore('project', {
     units: (s) => s.current.units,
     resources: (s) => s.current.resources,
     nodeById: (s) => (id: string) => s.current.nodes.find((n) => n.id === id),
+    summary(state) {
+      return summarizeProject(state.current.nodes, state.current.resources, state.current.units)
+    },
   },
 
   actions: {
@@ -146,23 +176,21 @@ export const useProjectStore = defineStore('project', {
       if (!this.projectLoaded) return this.current
       try {
         const raw = toRaw(this.current)
-        const next: Project =
-          typeof structuredClone === 'function'
-            ? structuredClone(raw)
-            : JSON.parse(JSON.stringify(raw))
+        const next: Project = toSerializable(raw)
         next.updatedAt = new Date().toISOString()
         ProjectZ.parse(next)
-        const pk = await db.projects.put(next)
+        await db.projects.put(next)
+        // const pk = await db.projects.put(next)
         const saved = await db.projects.get(next.id)
 
         this.current = saved ?? next
 
-        console.info('Dexie put:', {
-          pk,
-          id: next.id,
-          nodes: saved?.nodes.length,
-          edges: saved?.edges.length,
-        })
+        // console.info('Dexie put:', {
+        //   pk,
+        //   id: next.id,
+        //   nodes: saved?.nodes.length,
+        //   edges: saved?.edges.length,
+        // })
         return saved
       } catch (e) {
         console.error('save() failed', e)
@@ -171,9 +199,10 @@ export const useProjectStore = defineStore('project', {
     },
 
     async upsertNode(node: GraphNode) {
-      const i = this.current.nodes.findIndex((n) => n.id === node.id)
-      if (i === -1) this.current.nodes.push(node)
-      else Object.assign(this.current.nodes[i], node)
+      const clean = sanitizeNode(normalizeToSmartNode(node, this.current.resources))
+      const i = this.current.nodes.findIndex((n) => n.id === clean.id)
+      if (i === -1) this.current.nodes.push(clean)
+      else Object.assign(this.current.nodes[i], clean)
 
       const resources = node.data?.resources ?? []
       const map = new Map(this.current.resources.map((r) => [r.id, r]))
@@ -186,6 +215,19 @@ export const useProjectStore = defineStore('project', {
     async removeNode(id: string) {
       this.current.nodes = this.current.nodes.filter((n) => n.id !== id)
       this.current.edges = this.current.edges.filter((e) => e.source !== id && e.target !== id)
+      await this.save()
+    },
+
+    async updateNode(id: string, patch: DeepPartial<GraphNode>) {
+      const i = this.current.nodes.findIndex((n) => n.id === id)
+      if (i === -1) return
+      const prev = this.current.nodes[i]
+      const next = toSerializable({
+        ...prev,
+        ...patch,
+        data: { ...prev.data, ...(patch.data ?? {}) },
+      })
+      this.current.nodes[i] = next
       await this.save()
     },
 
@@ -224,42 +266,39 @@ export const useProjectStore = defineStore('project', {
       const uniq = Array.from(new Map(allResources.map((r) => [r.id, r])).values())
       this.current.resources = uniq
       this.current.units = [
-  {
-    id: 'kWh',
-    name: 'Kilowatt Hour',
-    symbol: 'kWh',
-    baseUnit: 'kWh',
-    factor: 1,
-    dimension: 'energy',
-  },
-  {
-    id: 'kg',
-    name: 'Kilogram',
-    symbol: 'kg',
-    baseUnit: 'kg',
-    factor: 1,
-    dimension: 'mass',
-  },
-  {
-    id: 'lux',
-    name: 'Lux',
-    symbol: 'lx',
-    baseUnit: 'lux',
-    factor: 1,
-    dimension: 'light',
-  },
-  {
-    id: 's',
-    name: 'Second',
-    symbol: 's',
-    baseUnit: 's',
-    factor: 1,
-    dimension: 'time',
-  },
-]
-
-
-
+        {
+          id: 'kWh',
+          name: 'Kilowatt Hour',
+          symbol: 'kWh',
+          baseUnit: 'kWh',
+          factor: 1,
+          dimension: 'energy',
+        },
+        {
+          id: 'kg',
+          name: 'Kilogram',
+          symbol: 'kg',
+          baseUnit: 'kg',
+          factor: 1,
+          dimension: 'mass',
+        },
+        {
+          id: 'lux',
+          name: 'Lux',
+          symbol: 'lx',
+          baseUnit: 'lux',
+          factor: 1,
+          dimension: 'light',
+        },
+        {
+          id: 's',
+          name: 'Second',
+          symbol: 's',
+          baseUnit: 's',
+          factor: 1,
+          dimension: 'time',
+        },
+      ]
 
       this.projectLoaded = true
       await this.save()
@@ -277,11 +316,10 @@ export const useProjectStore = defineStore('project', {
     async updateNodePosition(id: string, position: { x: number; y: number }) {
       const n = this.current.nodes.find((node) => node.id === id)
       if (!n) {
-        console.info('Attempt to move nonexistent node')
+        console.warn('Attempt to move nonexistent node')
         return
       }
       n.position = position
-      console.info('Updating node position:', id)
       await this.save()
     },
 
@@ -298,6 +336,6 @@ export const useProjectStore = defineStore('project', {
         resources: this.current.resources,
         units: this.current.units,
       }
-    }
-  }
+    },
+  },
 })

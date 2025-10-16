@@ -28,7 +28,14 @@
 
     <label class="label">
       <span>Precision (optional, integer ≥ 0)</span>
-      <input v-model.number="form.precision" type="number" step="1" min="0" class="input" placeholder="e.g. 2" />
+      <input
+        v-model.number="form.precision"
+        type="number"
+        step="1"
+        min="0"
+        class="input"
+        placeholder="e.g. 2"
+      />
       <p v-if="errors.precision" class="error-box">{{ errors.precision }}</p>
     </label>
 
@@ -69,29 +76,42 @@ const form = reactive<Resource>({
 
 const aliasesStr = computed({
   get: () => (form.aliases ?? []).join(', '),
-  set: (v: string) => (form.aliases = v.split(',').map(s => s.trim()).filter(Boolean)),
+  set: (v: string) =>
+    (form.aliases = v
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)),
 })
 
-const unitIds = computed(() => project.current.units.map(u => u.id))
+const unitIds = computed(() => project.current.units.map((u) => u.id))
 const errors = reactive<Record<string, string | null>>({
-  id: null, name: null, defaultUnitId: null, category: null, precision: null, aliases: null,
+  id: null,
+  name: null,
+  defaultUnitId: null,
+  category: null,
+  precision: null,
+  aliases: null,
 })
 
-watch(() => props.initial, (v) => {
-  form.id = v?.id ?? ''
-  form.name = v?.name ?? ''
-  form.defaultUnitId = v?.defaultUnitId ?? undefined
-  form.category = v?.category ?? ''
-  form.precision = v?.precision ?? undefined
-  form.aliases = v?.aliases ?? []
-  Object.keys(errors).forEach(k => (errors[k] = null))
-}, { deep: false })
+watch(
+  () => props.initial,
+  (v) => {
+    form.id = v?.id ?? ''
+    form.name = v?.name ?? ''
+    form.defaultUnitId = v?.defaultUnitId ?? undefined
+    form.category = v?.category ?? ''
+    form.precision = v?.precision ?? undefined
+    form.aliases = v?.aliases ?? []
+    Object.keys(errors).forEach((k) => (errors[k] = null))
+  },
+  { deep: false },
+)
 
 function validate(): Resource | null {
-  Object.keys(errors).forEach(k => (errors[k] = null))
+  Object.keys(errors).forEach((k) => (errors[k] = null))
 
   // unique id on create
-  if (!isEdit.value && project.current.resources.some(r => r.id === form.id)) {
+  if (!isEdit.value && project.current.resources.some((r) => r.id === form.id)) {
     errors.id = `ID "${form.id}" is already in use`
     return null
   }
@@ -128,10 +148,34 @@ async function onSubmit() {
 </script>
 
 <style scoped>
-.form { border: 1px solid lightgray; padding: 8px; }
-.label { display: block; margin: 4px; border-bottom: 1px solid lightgray; }
-.label > * { display: block; }
-.label > .input { border: 2px solid black; border-radius: 4px; margin-bottom: 4px; }
-.error-box { color: red; }
-.visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); overflow:hidden; }
+.form {
+  border: 1px solid lightgray;
+  padding: 8px;
+}
+.label {
+  display: block;
+  margin: 4px;
+  border-bottom: 1px solid lightgray;
+}
+.label > * {
+  display: block;
+}
+.label > .input {
+  border: 2px solid black;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+.error-box {
+  color: red;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
 </style>

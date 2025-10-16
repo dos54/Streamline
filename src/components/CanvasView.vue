@@ -1,32 +1,40 @@
 <template>
   <div class="canvas-wrapper">
-    <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
-      @pane-ready="handlePaneReady" @connect="emitConnect" @nodes-change="emitNodesChange" class="fill">
+    <VueFlow
+      :nodes="nodes"
+      :edges="edges"
+      :node-types="nodeTypes"
+      :zoom-on-scroll="true"
+      :pan-on-drag="true"
+      @pane-ready="handlePaneReady"
+      @connect="emitConnect"
+      @nodes-change="emitNodesChange"
+      class="fill"
+    >
       <Background variant="dots" :gap="20" :size="1" />
     </VueFlow>
 
     <CanvasOverlay />
-
-    
-
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { watchEffect } from 'vue'
+import { watchEffect, shallowRef, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge, Connection, NodeChange } from '@vue-flow/core'
-import type { Component } from 'vue'
+import type {
+  NodeTypesObject,
+  NodeComponent,
+  Node,
+  Edge,
+  Connection,
+  NodeChange,
+} from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 
 import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
-
-
-
 
 const props = defineProps<{
   nodes: Node[]
@@ -53,11 +61,11 @@ function handlePaneReady() {
   })
 }
 
-const nodeTypes: NodeTypesObject = {
-  producer: ProducerNode as Component,
-  consumer: ConsumerNode as Component,
-  smart: SmartNode as Component,
-}
+const nodeTypes = shallowRef<NodeTypesObject>({
+  producer: markRaw(ProducerNode) as unknown as NodeComponent,
+  consumer: markRaw(ConsumerNode) as unknown as NodeComponent,
+  smart: markRaw(SmartNode) as unknown as NodeComponent,
+})
 
 type OutputResource = {
   resourceId: string
@@ -163,5 +171,4 @@ watchEffect(() => {
   border-top: 1px solid #ddd;
   background-color: #f5f5f5;
 }
-
 </style>

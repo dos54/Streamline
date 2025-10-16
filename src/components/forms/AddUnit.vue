@@ -28,22 +28,32 @@
 
     <label class="label">
       <span>Factor</span>
-      <input v-model.number="form.factor" type="number" step="any" min="0" required class="input" placeholder="e.g. 1000" />
+      <input
+        v-model.number="form.factor"
+        type="number"
+        step="any"
+        min="0"
+        required
+        class="input"
+        placeholder="e.g. 1000"
+      />
       <p v-if="errors.factor" class="error-box">{{ errors.factor }}</p>
     </label>
 
     <label class="label">
       <span>Dimension</span>
-      <input v-model.trim="form.dimension" required class="input" placeholder="e.g. mass, time, length" />
+      <input
+        v-model.trim="form.dimension"
+        required
+        class="input"
+        placeholder="e.g. mass, time, length"
+      />
       <p v-if="errors.dimension" class="error-box">{{ errors.dimension }}</p>
     </label>
 
     <label class="label">
       <span>Aliases (comma-separated)</span>
-      <input
-        class="input"
-        placeholder="e.g. second, sec, s"
-      />
+      <input class="input" placeholder="e.g. second, sec, s" />
       <p v-if="errors.aliases" class="error-box">{{ errors.aliases }}</p>
     </label>
   </form>
@@ -78,27 +88,37 @@ const form = reactive<Unit>({
   aliases: props.initial?.aliases ?? [],
 })
 
-const unitIds = computed(() => project.current.units.map(u => u.id))
+const unitIds = computed(() => project.current.units.map((u) => u.id))
 
 const errors = reactive<Record<string, string | null>>({
-  id: null, name: null, symbol: null, baseUnit: null, factor: null, dimension: null, aliases: null,
+  id: null,
+  name: null,
+  symbol: null,
+  baseUnit: null,
+  factor: null,
+  dimension: null,
+  aliases: null,
 })
 
-watch(() => props.initial, (v) => {
-  form.id = v?.id ?? ''
-  form.name = v?.name ?? ''
-  form.symbol = v?.symbol ?? ''
-  form.baseUnit = v?.baseUnit ?? ''
-  form.factor = v?.factor ?? 1
-  form.dimension = (v?.dimension as string) ?? 'count'
-  form.aliases = v?.aliases ?? []
-  Object.keys(errors).forEach(k => (errors[k] = null))
-}, { deep: false })
+watch(
+  () => props.initial,
+  (v) => {
+    form.id = v?.id ?? ''
+    form.name = v?.name ?? ''
+    form.symbol = v?.symbol ?? ''
+    form.baseUnit = v?.baseUnit ?? ''
+    form.factor = v?.factor ?? 1
+    form.dimension = (v?.dimension as string) ?? 'count'
+    form.aliases = v?.aliases ?? []
+    Object.keys(errors).forEach((k) => (errors[k] = null))
+  },
+  { deep: false },
+)
 
 function validate(): Unit | null {
-  Object.keys(errors).forEach(k => (errors[k] = null))
+  Object.keys(errors).forEach((k) => (errors[k] = null))
 
-  if (!isEdit.value && project.current.units.some(u => u.id === form.id)) {
+  if (!isEdit.value && project.current.units.some((u) => u.id === form.id)) {
     errors.id = `ID "${form.id}" is already in use`
     return null
   }
@@ -156,5 +176,4 @@ async function onSubmit() {
   border-radius: 4px;
   margin-bottom: 4px;
 }
-
 </style>

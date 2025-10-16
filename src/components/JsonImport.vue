@@ -20,9 +20,7 @@
       <button @click="validateJson">Validate</button>
       <button @click="clearCanvas" class="btn danger">Clear Canvas</button>
 
-      <div v-if="validationResult?.valid" style="color: green">
-        ✅ JSON is valid!
-      </div>
+      <div v-if="validationResult?.valid" style="color: green">✅ JSON is valid!</div>
 
       <div v-if="validationResult && !validationResult.valid">
         <ul style="color: red">
@@ -99,7 +97,6 @@ function validateJson() {
     validationResult.value = null
   }
 }
-
 
 function clearCanvas() {
   emit('clear')

@@ -2,7 +2,7 @@
 import { onMounted, computed } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useVueFlow } from '@vue-flow/core'
-import type { Node as VFNode, Edge, NodeChange, AddEdges, Connection } from '@vue-flow/core'
+import type { Node as VFNode, Edge, NodeChange, Connection } from '@vue-flow/core'
 
 import CanvasView from '@/components/CanvasView.vue'
 import NodeSidebar from '@/components/sidebar/NodeSidebar.vue'
@@ -51,7 +51,7 @@ function handleInject(nodes: VFNode[]) {
     inputs: node.data?.inputs ?? [],
     outputs: node.data?.outputs ?? [],
     resources: node.data?.resources ?? [],
-    data: node.data,
+    data: { resources: node.data?.resources ?? [] },
   }))
   projectStore.injectNodes(mappedNodes)
 }
@@ -94,7 +94,13 @@ function onNodesChange(changes: NodeChange[]) {
 }
 
 function onAddEdge(edge: Connection) {
-  const connection = { ...edge, id: String(crypto.randomUUID()), enabled: true, sourceHandle: edge.sourceHandle ?? "", targetHandle: edge.targetHandle ?? ""}
+  const connection = {
+    ...edge,
+    id: String(crypto.randomUUID()),
+    enabled: true,
+    sourceHandle: edge.sourceHandle ?? '',
+    targetHandle: edge.targetHandle ?? '',
+  }
   addEdges(connection)
   projectStore.upsertEdge(connection)
 }

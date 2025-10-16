@@ -8,7 +8,7 @@ const submitting = ref(false)
 
 <template>
   <BaseModal v-model:open="open" title="Add Resource">
-    <AddResource @submitting="v => submitting = v" @saved="open = false" />
+    <AddResource @submitting="(v) => (submitting = v)" @saved="open = false" />
     <template #footer>
       <button @click="open = false">Cancel</button>
       <button :disabled="submitting" form="resource-form" type="submit">Save</button>

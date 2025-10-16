@@ -5,5 +5,5 @@ export const NodeResourceZ = z.object({
   label: z.string().optional(),
   perCycle: z.number(),
   consumptionChance: z.number().min(0).max(1).default(1),
-  unitId: z.string().min(1).optional(), // falls back to Resource.defaultUnitId
+  unitId: z.string().min(0).optional(), // falls back to Resource.defaultUnitId
 })

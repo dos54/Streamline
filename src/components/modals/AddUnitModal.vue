@@ -8,7 +8,7 @@ const submitting = ref(false)
 
 <template>
   <BaseModal v-model:open="open" title="Add Unit">
-    <AddUnit @submitting="v => submitting = v" @saved="open = false" />
+    <AddUnit @submitting="(v) => (submitting = v)" @saved="open = false" />
     <template #footer>
       <button @click="open = false">Cancel</button>
       <button :disabled="submitting" form="unit-form" type="submit">Save</button>
