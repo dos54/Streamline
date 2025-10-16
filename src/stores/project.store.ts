@@ -145,11 +145,19 @@ export const useProjectStore = defineStore('project', {
     async save() {
       if (!this.projectLoaded) return this.current
       try {
-        const raw = toRaw(this.current)
-        const next: Project =
-          typeof structuredClone === 'function'
-            ? structuredClone(raw)
-            : JSON.parse(JSON.stringify(raw))
+       function structuredCloneSafe<T>(obj: T): T {
+  try {
+    return typeof structuredClone === 'function'
+      ? structuredClone(obj)
+      : JSON.parse(JSON.stringify(obj))
+  } catch (e) {
+    console.warn('structuredClone failed, falling back to deep copy:', e)
+    return JSON.parse(JSON.stringify(toRaw(obj)))
+  }
+}
+
+const next: Project = structuredCloneSafe(this.current)
+
         next.updatedAt = new Date().toISOString()
         ProjectZ.parse(next)
         const pk = await db.projects.put(next)

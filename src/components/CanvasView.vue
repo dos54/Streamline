@@ -1,22 +1,35 @@
 <template>
   <div class="canvas-wrapper">
-    <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes" :zoom-on-scroll="true" :pan-on-drag="true"
-      @pane-ready="handlePaneReady" @connect="emitConnect" @nodes-change="emitNodesChange" class="fill">
+    <VueFlow
+      :nodes="nodes"
+      :edges="edges"
+      :node-types="nodeTypes"
+      :zoom-on-scroll="true"
+      :pan-on-drag="true"
+      @pane-ready="handlePaneReady"
+      @connect="emitConnect"
+      @nodes-change="emitNodesChange"
+      @node-click="emitNodeClick"
+      class="fill"
+    >
       <Background variant="dots" :gap="20" :size="1" />
     </VueFlow>
 
     <CanvasOverlay />
-
-    
-
   </div>
 </template>
-
 
 <script setup lang="ts">
 import { watchEffect } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
-import type { NodeTypesObject, Node, Edge, Connection, NodeChange } from '@vue-flow/core'
+import type {
+  NodeTypesObject,
+  Node,
+  Edge,
+  Connection,
+  NodeChange,
+  NodeMouseEvent
+} from '@vue-flow/core'
 import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
 
@@ -24,6 +37,10 @@ import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
+import { defineComponent, markRaw } from 'vue'
+
+
+
 
 
 
@@ -36,13 +53,19 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'connect', payload: Connection): void
   (e: 'nodesChange', payload: NodeChange[]): void
+  (e: 'nodeClick', payload: Node): void
 }>()
 
 function emitConnect(params: Connection) {
   emit('connect', params)
 }
+
 function emitNodesChange(changes: NodeChange[]) {
   emit('nodesChange', changes)
+}
+
+function emitNodeClick(event: NodeMouseEvent) {
+  emit('nodeClick', event.node)
 }
 
 const { fitView } = useVueFlow()
@@ -53,11 +76,23 @@ function handlePaneReady() {
   })
 }
 
-const nodeTypes: NodeTypesObject = {
-  producer: ProducerNode as Component,
-  consumer: ConsumerNode as Component,
-  smart: SmartNode as Component,
+// @ts-ignore: VueFlow type mismatch workaround
+
+const nodeTypes: Record<string, Component> = {
+  producer: markRaw(ProducerNode),
+  consumer: markRaw(ConsumerNode),
+  smart: markRaw(SmartNode),
 }
+
+
+
+
+
+
+
+
+
+
 
 type OutputResource = {
   resourceId: string
@@ -163,5 +198,4 @@ watchEffect(() => {
   border-top: 1px solid #ddd;
   background-color: #f5f5f5;
 }
-
 </style>
