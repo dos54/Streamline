@@ -196,14 +196,27 @@ onMounted(() => {
   line-height: 1.3;
 }
 
-/* Drag state styles */
-.sidebar-node[draggable='true']:hover {
-  cursor: grab;
+.selected-node-editor {
+  padding: 1rem;
+  border-top: 1px solid #ddd;
+  background-color: #fff;
 }
 
-.sidebar-node[draggable='true']:active {
-  cursor: grabbing;
-  opacity: 0.7;
+.field {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .sidebar-footer {

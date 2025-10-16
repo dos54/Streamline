@@ -9,6 +9,7 @@
       @pane-ready="handlePaneReady"
       @connect="emitConnect"
       @nodes-change="emitNodesChange"
+      @node-click="emitNodeClick"
       class="fill"
     >
       <Background variant="dots" :gap="20" :size="1" />
@@ -23,11 +24,12 @@ import { watchEffect, shallowRef, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import type {
   NodeTypesObject,
-  NodeComponent,
   Node,
   Edge,
   Connection,
   NodeChange,
+  NodeMouseEvent,
+  NodeComponent,
 } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 
@@ -44,13 +46,19 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'connect', payload: Connection): void
   (e: 'nodesChange', payload: NodeChange[]): void
+  (e: 'nodeClick', payload: Node): void
 }>()
 
 function emitConnect(params: Connection) {
   emit('connect', params)
 }
+
 function emitNodesChange(changes: NodeChange[]) {
   emit('nodesChange', changes)
+}
+
+function emitNodeClick(event: NodeMouseEvent) {
+  emit('nodeClick', event.node)
 }
 
 const { fitView } = useVueFlow()

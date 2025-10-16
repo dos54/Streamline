@@ -67,7 +67,7 @@ export default function useDragAndDrop() {
     event: DragEvent,
     screenToFlowCoordinate: (arg0: { x: number; y: number }) => { x: number; y: number },
   ) {
-    const nodeString = event.dataTransfer?.getData('application/vueflow') // stringnified node
+    const nodeString = event.dataTransfer?.getData('application/vueflow') // stringified node
     if (!nodeString) {
       return null // non-valid drop.
     }
@@ -120,8 +120,13 @@ export default function useDragAndDrop() {
     return newNode
   }
 
+  function onNodeDragStop(nodeId: string, position: { x: number; y: number }) {
+    project.updateNodePosition(nodeId, position)
+  }
+
   return {
     onDragOver,
     onDrop,
+    onNodeDragStop,
   }
 }
