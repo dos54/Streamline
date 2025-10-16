@@ -1,11 +1,7 @@
 <template>
   <div class="editor-root">
     <RouterView />
-    <JsonImport
-      v-if="ui.importPanelVisible"
-      @inject="handleInject"
-      @clear="handleClear"
-    />
+    <JsonImport v-if="ui.importPanelVisible" @inject="handleInject" @clear="handleClear" />
   </div>
 </template>
 

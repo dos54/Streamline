@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import router from '@/router'
 
 export const useUiStore = defineStore('ui', () => {

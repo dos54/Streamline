@@ -1,8 +1,19 @@
 <template>
-  <div class="producer-node" :style="{ borderColor: isNodeValid ? data.statusColor || '#ccc' : '#f44336' }">
-    <div class="header">Producer</div>
+  <div
+    class="producer-node"
+    :style="{ borderColor: isNodeValid ? data.statusColor || '#ccc' : '#f44336' }"
+  >
+    <div class="header">
+      Producer
+      <v-btn @click.stop="onRemove" class="delete-button">X</v-btn>
+    </div>
 
-    <input class="label-input" v-model="editableLabel" @blur="updateLabel" placeholder="Enter name" />
+    <input
+      class="label-input"
+      v-model="editableLabel"
+      @blur="updateLabel"
+      placeholder="Enter name"
+    />
 
     <button class="direction-toggle" @click="toggleDirection">
       Flow: {{ direction }} {{ directionArrow }}
@@ -12,7 +23,13 @@
 
     <div class="timing-section">
       <h3>Timing</h3>
-      <input v-model.number="data.cycleTime" type="number" placeholder="Cycle Time (s)" min="0" step="0.1" />
+      <input
+        v-model.number="data.cycleTime"
+        type="number"
+        placeholder="Cycle Time (s)"
+        min="0"
+        step="0.1"
+      />
     </div>
 
     <div class="io-wrapper" :class="direction">
@@ -20,10 +37,27 @@
       <div class="inputs-section" v-if="Array.isArray(data.inputs)">
         <h3>{{ direction === 'rtl' ? 'Inputs →' : '← Inputs' }}</h3>
         <div class="input-list">
-          <div v-for="(input, index) in data.inputs" :key="index" class="input-row" style="position: relative">
+          <div
+            v-for="(input, index) in data.inputs"
+            :key="index"
+            class="input-row"
+            style="position: relative"
+          >
             <label>Input {{ index + 1 }}</label>
 
-            <Handle type="target" :position="inputPosition" :id="`input-${index}`" class="row-handle" />
+            <Handle
+              type="target"
+              :position="inputPosition"
+              :id="`input-${index}`"
+              class="row-handle"
+            />
+
+            <select v-model="input.unitId">
+              <option value="">Select unit</option>
+              <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
+                {{ unit.label }}
+              </option>
+            </select>
 
             <select v-model="input.resourceId">
               <option value="">Select resource</option>
@@ -32,7 +66,13 @@
               </option>
             </select>
 
-            <input type="number" v-model.number="input.perCycle" min="0" step="0.1" placeholder="perCycle" />
+            <input
+              type="number"
+              v-model.number="input.perCycle"
+              min="0"
+              step="0.1"
+              placeholder="perCycle"
+            />
 
             <div v-if="!input.resourceId || input.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
@@ -49,14 +89,24 @@
       <div class="outputs-section" v-if="Array.isArray(data.outputs)">
         <h3>{{ direction === 'rtl' ? '← Outputs' : 'Outputs →' }}</h3>
         <div class="output-list">
-          <div v-for="(output, index) in data.outputs" :key="output.id" class="output-row" style="position: relative">
+          <div
+            v-for="(output, index) in data.outputs"
+            :key="output.id"
+            class="output-row"
+            style="position: relative"
+          >
             <label>
               Output {{ index + 1 }}
               <span v-if="outputStatus[index] === 'valid'" class="status-icon">✅</span>
               <span v-else-if="outputStatus[index] === 'invalid'" class="status-icon">⚠️</span>
             </label>
 
-            <Handle type="source" :position="outputPosition" :id="`output-${output.id}`" class="row-handle" />
+            <Handle
+              type="source"
+              :position="outputPosition"
+              :id="`output-${output.id}`"
+              class="row-handle"
+            />
 
             <select v-model="output.resourceId" @change="syncUnit(output)">
               <option value="">Select resource</option>
@@ -65,15 +115,24 @@
               </option>
             </select>
 
-            <select v-model="output.unitId" :class="{ 'auto-filled': wasAutoFilled(output) }"
-              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''">
+            <select
+              v-model="output.unitId"
+              :class="{ 'auto-filled': wasAutoFilled(output) }"
+              :title="wasAutoFilled(output) ? 'Default unit applied from resource' : ''"
+            >
               <option value="">Select unit</option>
               <option v-for="unit in unitOptions" :key="unit.id" :value="unit.id">
                 {{ unit.label }}
               </option>
             </select>
 
-            <input type="number" v-model.number="output.perCycle" min="0" step="0.1" placeholder="perCycle" />
+            <input
+              type="number"
+              v-model.number="output.perCycle"
+              min="0"
+              step="0.1"
+              placeholder="perCycle"
+            />
             <div v-if="!output.resourceId || output.perCycle <= 0" class="validation-warning">
               ⚠️ Resource and perCycle required
             </div>
@@ -88,22 +147,24 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, toRaw, watch } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { useProjectStore } from '../stores/project.store'
 import type { Unit } from '@/types/project'
+import { debounce } from '@/utils/debounce'
 
 const project = useProjectStore()
 
 const props = defineProps<{
+  id: string
   data: {
     label: string
     direction?: 'ltr' | 'rtl'
     cycleTime: number
     inputs: {
       resourceId: string
+      unitId: string
       perCycle: number
     }[]
     outputs: {
@@ -138,10 +199,20 @@ function toggleDirection() {
   data.direction = direction.value
 }
 
+const savePatch = debounce(async () => {
+  await project.updateNode(props.id, {
+    name: editableLabel.value,
+    cycleTime: data.cycleTime,
+    inputs: toRaw(data.inputs).map((i) => ({ ...i })),
+    outputs: toRaw(data.outputs).map((o) => ({ ...o })),
+  })
+}, 300)
+
 // ➕ Add input/output
 function addInput() {
   data.inputs.push({
     resourceId: '',
+    unitId: '',
     perCycle: 0,
   })
 }
@@ -167,10 +238,9 @@ function removeOutput(index: number) {
   data.outputs.splice(index, 1)
 }
 
-
 // ✅ Validation helpers
-function isValidResource(r: { resourceId: string; perCycle: number }) {
-  return r.resourceId !== '' && r.perCycle > 0
+function isValidResource(r: { resourceId: string; unitId?: string; perCycle: number }) {
+  return r.resourceId !== '' && !!r.unitId && r.perCycle > 0
 }
 
 const isNodeValid = computed(() => {
@@ -228,11 +298,21 @@ const unitOptions = computed(() =>
   })),
 )
 
-watchEffect(() => {
-  console.log('Project loaded?', !!project.current)
-  console.log('Resources:', project.resources ?? [])
-  console.log('Units:', project.units ?? [])
-})
+function onRemove() {
+  project.removeNode(props.id)
+}
+
+watch(
+  () => [editableLabel.value, direction.value, data.cycleTime, data.inputs, data.outputs],
+  savePatch,
+  { deep: true },
+)
+
+// watchEffect(() => {
+//   console.log('Project loaded?', !!project.current)
+//   console.log('Resources:', project.resources ?? [])
+//   console.log('Units:', project.units ?? [])
+// })
 </script>
 
 <style scoped>
@@ -407,13 +487,12 @@ select.auto-filled {
 
 .delete-button {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  top: 0.5rem;
+  right: 0.5rem;
   background: transparent;
   border: none;
   color: #f44336;
   font-size: 1.1rem;
   cursor: pointer;
 }
-
 </style>

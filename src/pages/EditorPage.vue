@@ -58,7 +58,7 @@ function handleInject(nodes: VFNode[]) {
     inputs: node.data?.inputs ?? [],
     outputs: node.data?.outputs ?? [],
     resources: node.data?.resources ?? [],
-    data: node.data,
+    data: { resources: node.data?.resources ?? [] },
   }))
   projectStore.injectNodes(mappedNodes)
 }

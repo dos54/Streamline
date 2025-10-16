@@ -16,6 +16,11 @@
     <button class="toolbar-button" @click="ui.openSettings()" title="Settings">
       <img :src="base + 'images/icons/settings-icon.svg'" class="toolbar-icon" alt="" />
     </button>
+
+    <SummaryModal v-model:open="showSummary" />
+    <button class="toolbar-button" @click="showSummary = true">
+      <img :src="base + 'images/icons/page.svg'" alt="Summary" class="toolbar-icon" />
+    </button>
   </div>
 </template>
 
@@ -23,11 +28,14 @@
 import { useUiStore } from '@/stores/ui.store'
 import { useProjectStore } from '@/stores/project.store'
 import { useVueFlow } from '@vue-flow/core'
+import { ref } from 'vue'
 import { exportVueFlowCanvasWithBounds } from '@/utils/imageExport'
+import SummaryModal from '../modals/SummaryModal.vue'
 
 const ui = useUiStore()
 const project = useProjectStore()
 const base = import.meta.env.BASE_URL
+const showSummary = ref(false)
 
 async function exportCanvas() {
   const vueFlowElement = document.querySelector('.vue-flow') as HTMLElement

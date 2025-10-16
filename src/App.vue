@@ -4,7 +4,6 @@
   </v-app>
 </template>
 
-
 <style>
 .app-root {
   width: 100vw;

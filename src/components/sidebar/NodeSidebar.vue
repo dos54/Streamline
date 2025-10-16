@@ -25,51 +25,15 @@
       </div>
     </div>
 
-    <!-- ✅ Selected Node Autofill -->
-    <div v-if="node" class="selected-node-editor">
-      <h4>Edit Selected Node</h4>
-
-      <div class="field">
-        <label>Name</label>
-        <input v-model="node.name" />
-      </div>
-
-      <div class="field">
-        <label>Cycle Time</label>
-        <input type="number" v-model.number="node.cycleTime" min="1" />
-      </div>
-
-      <div class="field">
-        <label>Mode</label>
-        <select v-model="node.mode">
-          <option value="producer">Producer</option>
-          <option value="consumer">Consumer</option>
-          <option value="transformer">Transformer</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Resources</label>
-        <ul>
-          <li v-for="r in node.data?.resources ?? []" :key="r.id">
-            {{ r.name }} ({{ r.defaultUnitId }})
-          </li>
-        </ul>
-      </div>
-
-      <v-btn @click="saveNode" color="success" block class="mt-2">
-        Save Node
-      </v-btn>
-    </div>
+    <AddUnitModal v-model:open="showAdd" />
+    <AddResourceModal v-model:open="showResource" />
 
     <!-- ✅ Footer Buttons -->
     <div class="sidebar-footer">
-      <v-btn @click="exportProject" color="primary" block class="mb-2">
-        Export JSON
-      </v-btn>
-      <v-btn @click="showImportPanel" color="secondary" block>
-        Import JSON
-      </v-btn>
+      <v-btn @click="showResource = true" class="mb-2" block color="primary">Add Resource</v-btn>
+      <v-btn @click="showAdd = true" class="mb-2" block color="secondary">Add Unit</v-btn>
+      <v-btn @click="exportProject" color="primary" block class="mb-2"> Export JSON </v-btn>
+      <v-btn @click="showImportPanel" color="secondary" block> Import JSON </v-btn>
     </div>
   </div>
 </template>
@@ -79,27 +43,13 @@ import { ref, onMounted } from 'vue'
 import nodeTypesData from '@/data/nodeTypes.json'
 import { useProjectStore } from '@/stores/project.store'
 import { useUiStore } from '@/stores/ui.store'
-import type { GraphNode } from '@/types/graphNode'
-
-const props = defineProps<{
-  node: GraphNode | null
-}>()
+import AddUnitModal from '@/components/modals/AddUnitModal.vue'
+import AddResourceModal from '../modals/AddResourceModal.vue'
 
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
-
-function saveNode() {
-  if (props.node) {
-    console.info('🧠 Saving node:', {
-      id: props.node.id,
-      name: props.node.name,
-      cycleTime: props.node.cycleTime,
-      mode: props.node.mode,
-    })
-    projectStore.upsertNode(props.node)
-  }
-}
-
+const showAdd = ref(false)
+const showResource = ref(false)
 
 function exportProject() {
   const data = projectStore.exportProject()

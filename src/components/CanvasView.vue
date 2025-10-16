@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { watchEffect } from 'vue'
+import { watchEffect, shallowRef, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import type {
   NodeTypesObject,
@@ -28,22 +28,15 @@ import type {
   Edge,
   Connection,
   NodeChange,
-  NodeMouseEvent
+  NodeMouseEvent,
+  NodeComponent,
 } from '@vue-flow/core'
-import type { Component } from 'vue'
 import { Background } from '@vue-flow/background'
 
 import ProducerNode from '../nodes/ProducerNode.vue'
 import ConsumerNode from '../nodes/ConsumerNode.vue'
 import CanvasOverlay from './overlay/CanvasOverlay.vue'
 import SmartNode from '../nodes/SmartNode.vue'
-import { defineComponent, markRaw } from 'vue'
-
-
-
-
-
-
 
 const props = defineProps<{
   nodes: Node[]
@@ -76,23 +69,11 @@ function handlePaneReady() {
   })
 }
 
-// @ts-ignore: VueFlow type mismatch workaround
-
-const nodeTypes: Record<string, Component> = {
-  producer: markRaw(ProducerNode),
-  consumer: markRaw(ConsumerNode),
-  smart: markRaw(SmartNode),
-}
-
-
-
-
-
-
-
-
-
-
+const nodeTypes = shallowRef<NodeTypesObject>({
+  producer: markRaw(ProducerNode) as unknown as NodeComponent,
+  consumer: markRaw(ConsumerNode) as unknown as NodeComponent,
+  smart: markRaw(SmartNode) as unknown as NodeComponent,
+})
 
 type OutputResource = {
   resourceId: string
