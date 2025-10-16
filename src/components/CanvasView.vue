@@ -76,7 +76,7 @@ function handlePaneReady() {
   })
 }
 
-
+// @ts-ignore: VueFlow type mismatch workaround
 
 const nodeTypes: Record<string, Component> = {
   producer: markRaw(ProducerNode),
