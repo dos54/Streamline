@@ -65,7 +65,7 @@ async function exportCanvas() {
 .toolbar {
   position: absolute;
   top: 8px;
-  left: 258px; /* 250px sidebar width + 8px margin */
+  left: 8px;
   pointer-events: auto;
   display: flex;
   gap: 4px;
